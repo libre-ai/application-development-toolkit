@@ -1,4 +1,5 @@
 import { expect, type Response, test } from "@playwright/test";
+import { withDiagnosticCleanup } from "./diagnostic-cleanup";
 import { loginViaUI } from "./login-via-ui";
 
 test("login waits for the redirected document before checking the authenticated form", async ({
@@ -13,9 +14,6 @@ test("login waits for the redirected document before checking the authenticated 
     if (new URL(response.url()).pathname === "/v1/auth/callback") callbackObserved = true;
   }
   page.on("response", observedCallback);
-  await session.send("Fetch.enable", {
-    patterns: [{ urlPattern: "https://127.0.0.1:3000/", requestStage: "Response" }],
-  });
   session.on("Fetch.requestPaused", (event) => {
     const pending = (async () => {
       if (callbackObserved && event.resourceType === "Document") {
@@ -28,14 +26,24 @@ test("login waits for the redirected document before checking the authenticated 
     });
     pendingResponses.push(pending);
   });
-  try {
-    await page.goto("/");
-    await loginViaUI(page);
-    expect(delayedReturnDocument).toBe(true);
-  } finally {
-    page.off("response", observedCallback);
-    await Promise.all(pendingResponses);
-    await session.detach();
-    expect(responseErrors).toEqual([]);
-  }
+  await withDiagnosticCleanup(
+    async () => {
+      await session.send("Fetch.enable", {
+        patterns: [{ urlPattern: "https://127.0.0.1:3000/", requestStage: "Response" }],
+      });
+      await page.goto("/");
+      await loginViaUI(page);
+      expect(delayedReturnDocument).toBe(true);
+    },
+    async () => {
+      page.off("response", observedCallback);
+      await Promise.all(pendingResponses);
+      try {
+        await session.detach();
+      } catch (error: unknown) {
+        responseErrors.push(error);
+      }
+      expect(responseErrors).toEqual([]);
+    },
+  );
 });
