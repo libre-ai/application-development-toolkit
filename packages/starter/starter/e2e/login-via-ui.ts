@@ -7,12 +7,14 @@ interface BootstrapNavigation {
 }
 
 export async function observeLoginBootstrap(
-  page: Pick<Page, "on" | "off">,
+  page: Pick<Page, "on" | "off" | "isClosed" | "context">,
   returnUrl: string,
   scenario: (navigation: BootstrapNavigation) => Promise<void>,
   emit: (line: string) => void = (line) => console.info(line),
 ): Promise<void> {
   const origin = new URL(returnUrl).origin;
+  const context = page.context();
+  const browser = context.browser();
   const counters = () => ({
     requests: 0,
     responses: 0,
@@ -21,6 +23,14 @@ export async function observeLoginBootstrap(
   });
   const report = {
     diagnostic: "login-bootstrap",
+    lifecycle: {
+      initialPageClosed: page.isClosed(),
+      initialBrowserConnected: browser?.isConnected() ?? null,
+      pageCrash: false,
+      pageClose: false,
+      contextClose: false,
+      browserDisconnected: false,
+    },
     navigation: {
       callbackStatus: null,
       returnCommitted: false,
@@ -75,6 +85,22 @@ export async function observeLoginBootstrap(
       report.captureUnavailable = true;
     }
   }
+  function pageCrashed(): void {
+    report.lifecycle.pageCrash = true;
+  }
+  function pageClosed(): void {
+    report.lifecycle.pageClose = true;
+  }
+  function contextClosed(): void {
+    report.lifecycle.contextClose = true;
+  }
+  function browserDisconnected(): void {
+    report.lifecycle.browserDisconnected = true;
+  }
+  page.on("crash", pageCrashed);
+  page.on("close", pageClosed);
+  context.on("close", contextClosed);
+  browser?.on("disconnected", browserDisconnected);
   page.on("request", requested);
   page.on("response", responded);
   page.on("requestfailed", failed);
@@ -92,6 +118,10 @@ export async function observeLoginBootstrap(
     }
     throw primary;
   } finally {
+    page.off("crash", pageCrashed);
+    page.off("close", pageClosed);
+    context.off("close", contextClosed);
+    browser?.off("disconnected", browserDisconnected);
     page.off("request", requested);
     page.off("response", responded);
     page.off("requestfailed", failed);

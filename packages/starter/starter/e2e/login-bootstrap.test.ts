@@ -3,10 +3,19 @@ import { EventEmitter } from "node:events";
 import type { Page } from "@playwright/test";
 import { observeLoginBootstrap } from "./login-via-ui";
 
-function fixture() {
+function fixture(initialPageClosed = false, initialBrowserConnected: boolean | null = true) {
   const events = new EventEmitter();
-  const page = events as unknown as Pick<Page, "on" | "off">;
-  return { events, page };
+  const browserEvents = new EventEmitter();
+  const contextEvents = new EventEmitter();
+  const browser = Object.assign(browserEvents, { isConnected: () => initialBrowserConnected });
+  const context = Object.assign(contextEvents, {
+    browser: () => (initialBrowserConnected === null ? null : browser),
+  });
+  const page = Object.assign(events, {
+    isClosed: () => initialPageClosed,
+    context: () => context,
+  }) as unknown as Pick<Page, "on" | "off" | "isClosed" | "context">;
+  return { events, page, browserEvents, contextEvents };
 }
 function request(path: string, type = "fetch") {
   return { url: () => `https://fixture.invalid${path}`, resourceType: () => type };
@@ -18,7 +27,7 @@ function response(path: string, status: number) {
   };
 }
 function expectClean(events: EventEmitter) {
-  for (const event of ["request", "response", "requestfailed"])
+  for (const event of ["request", "response", "requestfailed", "crash", "close"])
     expect(events.listenerCount(event)).toBe(0);
 }
 
@@ -66,6 +75,14 @@ test("failure emits only bounded bootstrap facts and rethrows the same primary e
   expect(emitted).toHaveLength(1);
   const value = JSON.parse(emitted[0] ?? "");
   expect(value.captureUnavailable).toBe(false);
+  expect(value.lifecycle).toEqual({
+    initialPageClosed: false,
+    initialBrowserConnected: true,
+    pageCrash: false,
+    pageClose: false,
+    contextClose: false,
+    browserDisconnected: false,
+  });
   expect(value.navigation).toEqual({
     callbackStatus: 303,
     returnCommitted: true,
@@ -178,4 +195,56 @@ test("failure of both diagnostic sinks still preserves the primary error", async
   } finally {
     warning.mockRestore();
   }
+});
+
+for (const initialBrowserConnected of [true, false, null]) {
+  test(`closure diagnostics preserve initial state with browser ${initialBrowserConnected}`, async () => {
+    const { events, page, contextEvents, browserEvents } = fixture(true, initialBrowserConnected);
+    const emitted: string[] = [];
+    const primary = new Error("private closure error");
+    await expect(
+      observeLoginBootstrap(
+        page,
+        "https://fixture.invalid/",
+        async () => {
+          events.emit("crash", { private: "must not serialize" });
+          events.emit("close", page);
+          contextEvents.emit("close");
+          browserEvents.emit("disconnected");
+          throw primary;
+        },
+        (line) => emitted.push(line),
+      ),
+    ).rejects.toBe(primary);
+    expect(JSON.parse(emitted[0] ?? "").lifecycle).toEqual({
+      initialPageClosed: true,
+      initialBrowserConnected,
+      pageCrash: true,
+      pageClose: true,
+      contextClose: true,
+      browserDisconnected: initialBrowserConnected !== null,
+    });
+    expect(emitted[0]).not.toMatch(/private|serialize/);
+    expectClean(events);
+    expect(contextEvents.listenerCount("close")).toBe(0);
+    expect(browserEvents.listenerCount("disconnected")).toBe(0);
+  });
+}
+
+test("successful observation cleans context and browser listeners without reporting closure", async () => {
+  const { page, events, contextEvents, browserEvents } = fixture();
+  const emitted: string[] = [];
+  await observeLoginBootstrap(
+    page,
+    "https://fixture.invalid/",
+    async () => {
+      expect(contextEvents.listenerCount("close")).toBe(1);
+      expect(browserEvents.listenerCount("disconnected")).toBe(1);
+    },
+    (line) => emitted.push(line),
+  );
+  expect(emitted).toEqual([]);
+  expectClean(events);
+  expect(contextEvents.listenerCount("close")).toBe(0);
+  expect(browserEvents.listenerCount("disconnected")).toBe(0);
 });
