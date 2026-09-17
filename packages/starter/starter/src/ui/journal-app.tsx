@@ -79,12 +79,17 @@ export function JournalApp() {
           // Fetch CSRF token for the session
           try {
             const csrfRes = await fetch("/e2e/csrf");
-            if (csrfRes.ok) {
-              const csrfData = (await csrfRes.json()) as CsrfToken;
-              setCsrfToken(csrfData.csrfToken);
+            if (!csrfRes.ok) throw new Error("CSRF acquisition failed");
+            const csrfData = (await csrfRes.json()) as Partial<CsrfToken>;
+            if (typeof csrfData.csrfToken !== "string" || csrfData.csrfToken.length === 0) {
+              throw new Error("CSRF acquisition returned no token");
             }
+            setCsrfToken(csrfData.csrfToken);
           } catch {
-            // CSRF endpoint may not be available in production
+            setMessage({
+              type: "error",
+              text: "Impossible de préparer les actions protégées.",
+            });
           }
         }
       } catch (error) {
@@ -102,6 +107,8 @@ export function JournalApp() {
   const handleAddNote = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      // Direct form dispatch must obey the same readiness gate as the button.
+      if (csrfToken === null) return;
       if (!noteText.trim()) {
         setMessage({
           type: "error",
@@ -165,6 +172,7 @@ export function JournalApp() {
   const handleValidate = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      if (csrfToken === null) return;
       if (!schemaName) {
         setMessage({
           type: "error",
@@ -320,7 +328,9 @@ export function JournalApp() {
                     placeholder="Entrez votre note…"
                     className="text-sm"
                   />
-                  <button type="submit">Ajouter la note</button>
+                  <button type="submit" disabled={csrfToken === null}>
+                    Ajouter la note
+                  </button>
                 </form>
 
                 {message && (
@@ -382,7 +392,9 @@ export function JournalApp() {
                     className="text-sm"
                   />
                 </div>
-                <button type="submit">Valider</button>
+                <button type="submit" disabled={csrfToken === null}>
+                  Valider
+                </button>
               </form>
             </Surface>
 
