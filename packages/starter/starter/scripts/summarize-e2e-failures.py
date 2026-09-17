@@ -124,6 +124,12 @@ def summarize_archive(stream):
     events = 0
     total_bytes = 0
     trace_found = False
+    coverage = {
+        'traceMembersRead': 0, 'networkMembersRead': 0,
+        'traceMembersIgnored': 0, 'networkMembersIgnored': 0,
+        'browserEventsSeen': 0, 'networkEventsSeen': 0,
+        'browserCoverage': 'not-observed',
+    }
     with zipfile.ZipFile(stream) as archive:
         members = archive.infolist()
         require(len(members) <= MAX_MEMBERS, 'archive-limit')
@@ -139,10 +145,19 @@ def summarize_archive(stream):
             require(member.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED), 'invalid-archive')
         for member in members:
             # Never open resource bodies, screenshots, source files or attachments.
+            member_kind = None
+            if member.filename.endswith('.trace'):
+                member_kind = 'trace'
+            elif member.filename.endswith('.network'):
+                member_kind = 'network'
             if '/' in member.filename or not re.fullmatch(r'[A-Za-z0-9_-]+\.(trace|network)', member.filename):
+                if member_kind is not None:
+                    coverage[member_kind + 'MembersIgnored'] += 1
                 continue
-            is_trace = member.filename.endswith('.trace')
+            is_trace = member_kind == 'trace'
             trace_found |= is_trace
+            coverage[member_kind + 'MembersRead'] += 1
+            browser_stream = False
             with archive.open(member) as lines:
                 while True:
                     raw = lines.readline(MAX_LINE_BYTES + 1)
@@ -154,6 +169,10 @@ def summarize_archive(stream):
                     event = json.loads(raw, object_pairs_hook=unique_object, parse_constant=lambda _: (_ for _ in ()).throw(Refusal('invalid-format')))
                     require(type(event) is dict and event.get('type') in EVENT_TYPES, 'invalid-format')
                     kind = event['type']
+                    if kind == 'context-options':
+                        browser_stream = event.get('origin') == 'library' and event.get('browserName') in ('chromium', 'firefox', 'webkit')
+                    elif browser_stream:
+                        coverage['browserEventsSeen'] += 1
                     if kind == 'before':
                         pair = (event.get('class'), event.get('method'))
                         if pair[0] not in OPERATIONS or pair[1] not in OPERATIONS[pair[0]]:
@@ -170,8 +189,13 @@ def summarize_archive(stream):
                         if category is not None:
                             errors[category] += 1
                     elif kind == 'error':
-                        errors[error_category(event.get('error'))] += 1
+                        # The test runner uses top-level message; action errors are nested.
+                        error = event.get('error')
+                        if not isinstance(error, dict):
+                            error = {'message': event.get('message')}
+                        errors[error_category(error)] += 1
                     elif kind == 'resource-snapshot':
+                        coverage['networkEventsSeen'] += 1
                         snapshot = event.get('snapshot')
                         require(type(snapshot) is dict and type(snapshot.get('request')) is dict and type(snapshot.get('response')) is dict, 'invalid-format')
                         request, response = snapshot['request'], snapshot['response']
@@ -202,7 +226,10 @@ def summarize_archive(stream):
         row['startMs'] = round(row['startMs'], 3)
         if row['durationMs'] is not None:
             row['durationMs'] = round(row['durationMs'], 3)
-    return {'status': 'summarized', 'errors': errors, 'operations': output_operations, 'network': network}
+    # Observed events do not establish complete browser or network coverage.
+    if coverage['browserEventsSeen'] > 0:
+        coverage['browserCoverage'] = 'observed'
+    return {'status': 'summarized', 'errors': errors, 'operations': output_operations, 'network': network, 'coverage': coverage}
 
 
 def summarize_results(root):

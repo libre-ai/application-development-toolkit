@@ -87,6 +87,53 @@ class TraceSummary(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(result['scenarios'][0]['errors'], {'timeout': 1, 'assertion': 2, 'guid': 0, 'unclassified': 0})
 
+    def test_runner_only_trace_explicitly_reports_no_browser_coverage(self):
+        self.archive([
+            {'type': 'context-options', 'origin': 'testRunner', 'browserName': ''},
+            {'type': 'before', 'callId': 'runner', 'class': 'Test', 'method': 'expect', 'startTime': 100},
+            {'type': 'after', 'callId': 'runner', 'endTime': 105, 'error': {'message': 'expect(locator).toBeVisible() failed ' + SECRET}},
+            {'type': 'error', 'message': 'expect(locator).toBeVisible() failed ' + SECRET},
+        ])
+        code, result = self.run_cli()
+        self.assertEqual(code, 0)
+        row = result['scenarios'][0]
+        self.assertEqual(row['operations'], [])
+        self.assertEqual(row['network'], [])
+        self.assertEqual(row['errors']['assertion'], 2)
+        self.assertEqual(row['coverage'], {
+            'traceMembersRead': 1, 'networkMembersRead': 0,
+            'traceMembersIgnored': 0, 'networkMembersIgnored': 0,
+            'browserEventsSeen': 0, 'networkEventsSeen': 0,
+            'browserCoverage': 'not-observed',
+        })
+
+    def test_real_merged_member_dialect_reports_browser_events_and_filtered_network(self):
+        path = self.archive()
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr('test.trace', json.dumps({'type': 'context-options', 'origin': 'testRunner', 'browserName': ''}))
+            browser_events = [
+                {'type': 'context-options', 'origin': 'library', 'browserName': 'chromium'},
+                {'type': 'before', 'callId': 'browser', 'class': 'Frame', 'method': 'goto', 'startTime': 20, 'params': {'url': SECRET}},
+                {'type': 'after', 'callId': 'browser', 'endTime': 30},
+            ]
+            archive.writestr('0-trace.trace', '\n'.join(json.dumps(event) for event in browser_events))
+            nested_events = [{**event, 'callId': 'second'} if 'callId' in event else event for event in browser_events]
+            archive.writestr('2-0-trace.trace', '\n'.join(json.dumps(event) for event in nested_events))
+            archive.writestr('0-trace.network', json.dumps({'type': 'resource-snapshot', 'snapshot': {'_monotonicTime': 21, 'time': 2, 'request': {'url': 'https://example.invalid/not-allowlisted?' + SECRET, 'method': 'GET'}, 'response': {'status': 200}}}))
+            archive.writestr('nested/' + SECRET + '.trace', SECRET)
+            archive.writestr(SECRET + '.chunk.network', SECRET)
+        code, result = self.run_cli()
+        self.assertEqual(code, 0)
+        row = result['scenarios'][0]
+        self.assertEqual(len(row['operations']), 2)
+        self.assertEqual(row['network'], [])
+        self.assertEqual(row['coverage'], {
+            'traceMembersRead': 3, 'networkMembersRead': 1,
+            'traceMembersIgnored': 1, 'networkMembersIgnored': 1,
+            'browserEventsSeen': 4, 'networkEventsSeen': 1,
+            'browserCoverage': 'observed',
+        })
+
     def test_missing_after_is_explicit_without_inventing_duration(self):
         self.archive([{'type': 'before', 'callId': 'x', 'class': 'Frame', 'method': 'expect', 'startTime': 10}])
         code, result = self.run_cli()
