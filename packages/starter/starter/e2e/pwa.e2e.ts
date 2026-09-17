@@ -140,6 +140,7 @@ test("an unrelated public-key pin does not permit the test TLS certificate", asy
 }) => {
   const wrongPin = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   const browser = await playwright.chromium.launch({
+    channel: "chromium",
     args: [`--ignore-certificate-errors-spki-list=${wrongPin}`],
   });
   try {

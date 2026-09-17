@@ -7,17 +7,17 @@ export default defineConfig({
     {
       name: "chromium-no-js",
       testMatch: /no-js\.e2e\.ts/,
-      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
+      use: { ...devices["Desktop Chrome"], channel: "chromium", javaScriptEnabled: false },
     },
     {
       name: "chromium-pwa",
       testMatch: /pwa\.e2e\.ts/,
-      use: { ...devices["Desktop Chrome"], ignoreHTTPSErrors: false },
+      use: { ...devices["Desktop Chrome"], channel: "chromium", ignoreHTTPSErrors: false },
     },
     {
       name: "chromium",
       testMatch: /(?:journal|navigation-race)\.e2e\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], channel: "chromium" },
     },
     {
       name: "firefox",
@@ -32,7 +32,7 @@ export default defineConfig({
     {
       name: "chromium-csrf",
       testMatch: /csrf\.e2e\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], channel: "chromium" },
     },
   ],
   testDir: "./e2e",
