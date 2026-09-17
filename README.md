@@ -16,14 +16,9 @@ Shared interface components, web adapters and testing tools so applications can 
 
 ## Try locally
 
-Place `project-governance`, `schemas-and-contracts`, `ai-work-supervision`, `organization-data-lifecycle` and `ai-model-policy` next to this repository. The last two provide declared dependencies of the Auth workspace. Use Bun `1.4.0-canary.1` (revision `57f349f63`), then:
+Follow the [shared local composition guide](https://github.com/libre-ai/project-governance/blob/main/docs/LOCAL-COMPOSITION.md) with target `application-development-toolkit` and the commit to verify. It prepares all siblings and builds UI before consumer installation. From the prepared toolkit root:
 
 ```sh
-bun install --cwd ../project-governance --frozen-lockfile --ignore-scripts
-bun install --cwd ../schemas-and-contracts --frozen-lockfile --ignore-scripts
-bun install --cwd ../ai-work-supervision --frozen-lockfile --ignore-scripts
-bun install --frozen-lockfile --ignore-scripts
-bun run check
 bun run --cwd packages/starter/bun-app build
 bun run --cwd packages/starter/bun-app start
 ```

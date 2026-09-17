@@ -16,14 +16,9 @@ Des composants d'interface, des adaptateurs web et des outils de test partagés 
 
 ## Essayer localement
 
-Placez les dépôts `project-governance`, `schemas-and-contracts`, `ai-work-supervision`, `organization-data-lifecycle` et `ai-model-policy` à côté de celui-ci. Les deux derniers fournissent les dépendances déclarées de l’espace de travail Auth. Utilisez Bun `1.4.0-canary.1` (révision `57f349f63`), puis :
+Suivez le [guide commun de composition locale](https://github.com/libre-ai/project-governance/blob/main/docs/LOCAL-COMPOSITION.md) avec la cible `application-development-toolkit` et le SHA à vérifier. Il prépare tous les voisins et construit UI avant les installations des consommateurs. Depuis la racine du toolkit ainsi préparé :
 
 ```sh
-bun install --cwd ../project-governance --frozen-lockfile --ignore-scripts
-bun install --cwd ../schemas-and-contracts --frozen-lockfile --ignore-scripts
-bun install --cwd ../ai-work-supervision --frozen-lockfile --ignore-scripts
-bun install --frozen-lockfile --ignore-scripts
-bun run check
 bun run --cwd packages/starter/bun-app build
 bun run --cwd packages/starter/bun-app start
 ```

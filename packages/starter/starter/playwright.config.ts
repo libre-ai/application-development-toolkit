@@ -12,7 +12,7 @@ export default defineConfig({
     {
       name: "chromium-pwa",
       testMatch: /pwa\.e2e\.ts/,
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], ignoreHTTPSErrors: false },
     },
     {
       name: "chromium",
