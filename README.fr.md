@@ -5,13 +5,6 @@
 
 Des composants d'interface, des adaptateurs web et des outils de test partagés pour développer une application sans réécrire ces fondations.
 
-| Paquet | Utilité |
-| --- | --- |
-| [`@libre-ai/ui`](packages/ui) | Composants React, états visuels et styles partagés. |
-| [`@libre-ai/web-platform`](packages/web-platform) | Réponses serveur, document HTML et démarrage du client. |
-| [`@libre-ai/testing`](packages/testing) | Base PostgreSQL compatible en mémoire pour les tests. |
-| [Modèles d'application](packages/starter) | Exemples web à adapter à votre produit. |
-
 ## Paquets
 
 | Paquet | Utilité |

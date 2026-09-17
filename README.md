@@ -5,13 +5,6 @@
 
 Shared interface components, web adapters and testing tools so applications can reuse these foundations.
 
-| Package | Purpose |
-| --- | --- |
-| [`@libre-ai/ui`](packages/ui) | React components, visual states and shared styles. |
-| [`@libre-ai/web-platform`](packages/web-platform) | Server responses, HTML documents and client startup. |
-| [`@libre-ai/testing`](packages/testing) | An in-memory PostgreSQL-compatible database for tests. |
-| [Application templates](packages/starter) | Web examples to adapt to your product. |
-
 ## Packages
 
 | Package | Purpose |
