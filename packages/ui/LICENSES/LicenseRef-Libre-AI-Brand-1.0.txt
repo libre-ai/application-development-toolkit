@@ -1,0 +1,9 @@
+Libre AI Brand Assets License 1.0
+
+Copyright (c) 2026 Libre AI contributors. All rights reserved except for the permission below.
+
+Permission is granted to reproduce an unmodified Libre AI brand asset solely next to a truthful nominative reference to Libre AI, provided that the use does not imply sponsorship, certification, partnership, endorsement, or official distribution and is no more prominent than the user's own product or organization name.
+
+No permission is granted to alter a Libre AI brand asset; use it as the logo or primary branding of a fork, product, service, company, or domain; use it in advertising, merchandising, or certification; or present compatibility in a way that suggests endorsement. Those uses require prior written permission.
+
+This copyright permission does not grant ownership of a Libre AI name or mark, does not state that a mark is registered, and does not limit rights that apply independently under trademark law. Forks must use distinct names and branding. Software and content licenses remain separate from this license.

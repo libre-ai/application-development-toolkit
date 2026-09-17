@@ -1,0 +1,7 @@
+export const BRAND_MARK_VIEW_BOX = "0 0 24 24";
+
+export const BRAND_MARK_PARTS = [
+  "M2 3H16V7H6V21H2Z",
+  "M18 3H22V21H18Z",
+  "M10 10H15V16H10Z",
+] as const;

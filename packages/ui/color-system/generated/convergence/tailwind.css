@@ -1,0 +1,51 @@
+/* Tailwind CSS 4.3 CSS-first configuration. */
+@import "./theme.css";
+
+@theme inline {
+  --color-background: var(--lai-color-background);
+  --color-surface: var(--lai-color-surface);
+  --color-surface-subtle: var(--lai-color-surface-subtle);
+  --color-surface-elevated: var(--lai-color-surface-elevated);
+  --color-surface-overlay: var(--lai-color-surface-overlay);
+  --color-text-primary: var(--lai-color-text-primary);
+  --color-text-secondary: var(--lai-color-text-secondary);
+  --color-text-muted: var(--lai-color-text-muted);
+  --color-text-inverse: var(--lai-color-text-inverse);
+  --color-border-subtle: var(--lai-color-border-subtle);
+  --color-border-default: var(--lai-color-border-default);
+  --color-border-strong: var(--lai-color-border-strong);
+  --color-focus-ring: var(--lai-color-focus-ring);
+  --color-action-primary: var(--lai-color-action-primary);
+  --color-action-primary-hover: var(--lai-color-action-primary-hover);
+  --color-action-primary-active: var(--lai-color-action-primary-active);
+  --color-action-secondary: var(--lai-color-action-secondary);
+  --color-success: var(--lai-color-success);
+  --color-warning: var(--lai-color-warning);
+  --color-danger: var(--lai-color-danger);
+  --color-info: var(--lai-color-info);
+  --color-selection: var(--lai-color-selection);
+  --color-code-added: var(--lai-color-code-added);
+  --color-code-modified: var(--lai-color-code-modified);
+  --color-code-removed: var(--lai-color-code-removed);
+  --color-brand-primary: var(--lai-color-brand-primary);
+  --color-brand-secondary: var(--lai-color-brand-secondary);
+  --color-state-hover: var(--lai-color-state-hover);
+  --color-state-active: var(--lai-color-state-active);
+  --color-state-selected: var(--lai-color-state-selected);
+  --color-state-disabled-background: var(--lai-color-state-disabled-background);
+  --color-state-disabled-content: var(--lai-color-state-disabled-content);
+  --color-state-focus: var(--lai-color-state-focus);
+  --color-code-background: var(--lai-color-code-background);
+  --color-code-text: var(--lai-color-code-text);
+  --color-code-comment: var(--lai-color-code-comment);
+  --color-code-keyword: var(--lai-color-code-keyword);
+  --color-code-string: var(--lai-color-code-string);
+  --color-code-number: var(--lai-color-code-number);
+  --color-code-function: var(--lai-color-code-function);
+  --color-code-variable: var(--lai-color-code-variable);
+  --color-code-operator: var(--lai-color-code-operator);
+  --color-code-border: var(--lai-color-code-border);
+  --color-code-line-highlight: var(--lai-color-code-line-highlight);
+}
+
+@tailwind utilities;

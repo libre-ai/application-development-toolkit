@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Libre AI</title>
+  <rect width="64" height="64" rx="14" fill="#075e54"/>
+  <path fill="#fff" d="M17 15h9v27h21v8H17z"/>
+  <circle cx="43" cy="23" r="8" fill="#75d5c6"/>
+</svg>

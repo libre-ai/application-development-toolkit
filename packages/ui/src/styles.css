@@ -1,0 +1,332 @@
+@import "./tokens.css";
+
+@layer reset, tokens, base, components, utilities;
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+    --lai-color-canvas: var(--lai-color-background);
+    --lai-color-ink: var(--lai-color-text-primary);
+    --lai-color-muted: var(--lai-color-text-muted);
+    --lai-color-border: var(--lai-color-border-default);
+    --lai-color-accent: var(--lai-color-action-primary);
+    --lai-color-accent-strong: var(--lai-color-action-primary-hover);
+    --lai-color-on-accent: var(--lai-color-text-inverse);
+    --lai-color-focus: var(--lai-color-focus-ring);
+    --lai-space-1: 0.25rem;
+    --lai-space-2: 0.5rem;
+    --lai-space-3: 0.75rem;
+    --lai-space-4: 1rem;
+    --lai-space-6: 1.5rem;
+    --lai-space-8: 2rem;
+    --lai-space-12: 3rem;
+    --lai-radius-sm: 0.35rem;
+    --lai-radius-md: 0.75rem;
+    --lai-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--lai-color-ink) 9%, transparent);
+    --lai-content: 72rem;
+    --lai-measure: 68ch;
+    --lai-font-sans:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+}
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--lai-font-sans);
+    line-height: 1.5;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-width: 20rem;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  img,
+  svg {
+    max-width: 100%;
+  }
+}
+
+@layer base {
+  body {
+    color: var(--lai-color-ink);
+    background: var(--lai-color-canvas);
+  }
+
+  a {
+    color: var(--lai-color-accent);
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 0.1em;
+  }
+
+  a:hover {
+    color: var(--lai-color-accent-strong);
+  }
+
+  :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 0.2rem solid var(--lai-color-focus);
+    outline-offset: 0.2rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    max-width: var(--lai-measure);
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .lai-page {
+    width: min(100% - 2rem, var(--lai-content));
+    margin-inline: auto;
+  }
+
+  .lai-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lai-space-4);
+  }
+
+  .lai-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lai-space-3) var(--lai-space-6);
+    align-items: center;
+  }
+
+  .lai-header,
+  .lai-footer {
+    padding-block: var(--lai-space-6);
+  }
+
+  .lai-header a {
+    padding: 0.7rem 0.25rem;
+  }
+
+  .lai-main {
+    padding-block: var(--lai-space-8) var(--lai-space-12);
+  }
+
+  .lai-hero {
+    display: grid;
+    gap: var(--lai-space-4);
+    padding-block: var(--lai-space-8);
+  }
+
+  .lai-eyebrow {
+    margin: 0;
+    color: var(--lai-color-muted);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .lai-surface {
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 0.1rem solid var(--lai-color-border);
+    border-radius: var(--lai-radius-md);
+    background: var(--lai-color-surface);
+    box-shadow: var(--lai-shadow);
+  }
+
+  .lai-button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: var(--lai-space-3) var(--lai-space-4);
+    border: 0.12rem solid var(--lai-color-accent);
+    border-radius: var(--lai-radius-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .lai-button--primary {
+    color: var(--lai-color-on-accent);
+    background: var(--lai-color-accent);
+  }
+
+  .lai-button--quiet {
+    color: var(--lai-color-accent);
+    background: transparent;
+  }
+
+  .lai-button[data-hovered] {
+    color: var(--lai-color-on-accent);
+    background: var(--lai-color-accent-strong);
+  }
+
+  .lai-button[data-pressed] {
+    transform: translateY(0.1rem);
+  }
+
+  .lai-button[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .lai-skip-link {
+    position: fixed;
+    z-index: 10;
+    inset-block-start: var(--lai-space-2);
+    inset-inline-start: var(--lai-space-2);
+    padding: var(--lai-space-3) var(--lai-space-4);
+    color: var(--lai-color-on-accent);
+    background: var(--lai-color-accent-strong);
+    transform: translateY(-150%);
+  }
+
+  .lai-skip-link:focus {
+    transform: translateY(0);
+  }
+
+  .lai-status {
+    min-height: 1.5em;
+    color: var(--lai-color-muted);
+    font-weight: 650;
+  }
+
+  .lai-brand-mark {
+    display: inline-block;
+    flex: none;
+  }
+
+  .lai-brand-lockup {
+    display: inline-flex;
+    gap: var(--lai-space-2);
+    align-items: center;
+    color: var(--lai-color-ink);
+    font-weight: 750;
+  }
+
+  .lai-brand-lockup__product {
+    padding-inline-start: var(--lai-space-2);
+    border-inline-start: 0.1rem solid var(--lai-color-border);
+    color: var(--lai-color-muted);
+    font-weight: 600;
+  }
+
+  .lai-open-frame {
+    position: relative;
+    padding: var(--lai-space-6);
+    border: 0.1rem solid var(--lai-color-border);
+    background: var(--lai-color-surface);
+  }
+
+  .lai-open-frame::before {
+    position: absolute;
+    inset-block-start: -0.2rem;
+    inset-inline-end: var(--lai-space-6);
+    width: var(--lai-space-8);
+    height: 0.3rem;
+    background: var(--lai-color-surface);
+    content: "";
+  }
+
+  .lai-evidence h3,
+  .lai-product-signature h3 {
+    margin-block-start: 0;
+  }
+
+  .lai-evidence dl,
+  .lai-project-status {
+    display: grid;
+    gap: var(--lai-space-2);
+    margin-block-end: 0;
+  }
+
+  .lai-evidence__row {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.35fr) 1fr;
+    gap: var(--lai-space-3);
+  }
+
+  .lai-evidence__row dt {
+    color: var(--lai-color-muted);
+    font-size: 0.75rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+  }
+
+  .lai-evidence__row dd {
+    margin: 0;
+  }
+
+  .lai-product-signature {
+    display: grid;
+    gap: var(--lai-space-3);
+  }
+
+  .lai-enhanced-only {
+    display: none;
+  }
+
+  html[data-hydrated="true"] .lai-enhanced-only {
+    display: flex;
+  }
+}
+
+@layer utilities {
+  .lai-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .lai-muted {
+    color: var(--lai-color-muted);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .lai-button,
+  .lai-surface {
+    border-color: CanvasText;
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "name": "@libre-ai/ui",
+  "version": "0.1.0",
+  "description": "Accessible, verifiable UI primitives for the Libre AI sovereign application workshop (layer 4).",
+  "license": "SEE LICENSE IN LICENSING.md",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "dist",
+    "README.md",
+    "LICENSE",
+    "LICENSING.md",
+    "LICENSES/LicenseRef-Libre-AI-Brand-1.0.txt"
+  ],
+  "type": "module",
+  "keywords": [
+    "libre-ai",
+    "ui",
+    "react",
+    "accessible",
+    "react-aria"
+  ],
+  "homepage": "https://libre-ai.fr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libre-ai/application-development-toolkit.git",
+    "directory": "packages/ui"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles.css",
+    "./brand/mark.svg": "./src/assets/libre-ai-mark.svg",
+    "./tailwind": {
+      "types": "./src/tailwind.ts",
+      "bun": "./src/tailwind.ts",
+      "import": "./dist/tailwind.js",
+      "default": "./dist/tailwind.js"
+    }
+  },
+  "scripts": {
+    "check:bun:runtime": "bun node_modules/@libre-ai/governance/tools/quality/check-bun-minimum.ts",
+    "check:bun": "bun run check:bun:runtime && bun node_modules/@libre-ai/governance/tools/quality/check-bun-manifests.ts",
+    "check:toolchain": "bun run check:bun && bun node_modules/@libre-ai/governance/tools/quality/check-toolchain.ts",
+    "check:secret-scan": "bun run check:bun:runtime && bun node_modules/@libre-ai/governance/tools/quality/check-secret-scan.ts",
+    "check:personal-data": "bun run check:bun:runtime && bun node_modules/@libre-ai/governance/tools/quality/check-personal-data-boundary.ts",
+    "check:licensing": "bun run check:bun:runtime && reuse lint && bun node_modules/@libre-ai/governance/tools/quality/check-declared-licenses.ts",
+    "generate:colors": "bun run check:bun:runtime && bun color-system/generate.ts && bun color-system/adopt.ts",
+    "check:colors": "bun run check:bun:runtime && bun color-system/generate.ts --check && bun color-system/adopt.ts --check",
+    "generate:brand-assets": "bun run check:bun:runtime && bun tools/generate-brand-assets.ts",
+    "check:brand-assets": "bun run check:bun:runtime && bun tools/generate-brand-assets.ts --check",
+    "check:brand-publication": "bun run check:bun:runtime && bun tools/generate-brand-assets.ts --publication-check",
+    "check:package-contents": "bun run check:bun:runtime && bun tools/check-package-contents.ts",
+    "build:brand-reference": "bun run check:bun:runtime && bun brand/build-reference.tsx",
+    "check:brand-reference": "bun run check:bun:runtime && bun brand/build-reference.tsx --check",
+    "lint": "bun run check:bun:runtime && biome ci .",
+    "typecheck": "bun run check:bun:runtime && tsc --noEmit -p tsconfig.json",
+    "pretest": "bun run check:bun",
+    "test": "bun test",
+    "test:e2e": "bun run check:bun:runtime && env -u NO_COLOR -u FORCE_COLOR playwright test",
+    "check": "bun run check:bun && bun run check:toolchain && bun run check:secret-scan && bun run check:personal-data && bun run check:licensing && bun run check:colors && bun run check:brand-assets && bun run check:package-contents && bun run check:brand-reference && bun run lint && bun run typecheck && bun run test",
+    "prepublishOnly": "bun run check && bun run check:brand-publication",
+    "build": "bun run check:bun && bun run check:bun:runtime && bun build src/index.ts src/tailwind.ts --outdir dist --target browser --format esm --production --external react --external react-dom --external react-aria-components --external 'react-aria-components/*' --external tailwindcss"
+  },
+  "dependencies": {
+    "react-aria-components": "1.19.0"
+  },
+  "peerDependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwindcss": "4.3.2"
+  },
+  "peerDependenciesMeta": {
+    "tailwindcss": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.3",
+    "@libre-ai/governance": "file:../../../project-governance",
+    "@playwright/test": "1.61.1",
+    "@types/bun": "1.3.14",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwindcss": "4.3.2",
+    "typescript": "7.0.2"
+  },
+  "packageManager": "bun@1.4.0-canary.1",
+  "overrides": {
+    "fast-uri": "4.1.4"
+  }
+}

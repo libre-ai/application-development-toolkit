@@ -1,0 +1,1417 @@
+{
+  "format": "libre-ai.color-system-exploration.v1",
+  "proposal": "atelier-libre",
+  "scope": "Measured token pairs only; this is not a WCAG conformance claim.",
+  "contrast": {
+    "light": [
+      {
+        "foreground": "text-primary",
+        "background": "background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal — objectif AAA.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "surface",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal sur surface — objectif AAA.",
+        "ratio": 18.65,
+        "pass": true
+      },
+      {
+        "foreground": "text-secondary",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte secondaire — minimum AA.",
+        "ratio": 13.07,
+        "pass": true
+      },
+      {
+        "foreground": "text-muted",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte atténué mais informatif — minimum AA.",
+        "ratio": 8.27,
+        "pass": true
+      },
+      {
+        "foreground": "text-inverse",
+        "background": "action-primary",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal.",
+        "ratio": 6.2,
+        "pass": true
+      },
+      {
+        "foreground": "action-primary",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Contrôle principal contre son environnement.",
+        "ratio": 5.88,
+        "pass": true
+      },
+      {
+        "foreground": "focus-ring",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Anneau de focus visible.",
+        "ratio": 5.88,
+        "pass": true
+      },
+      {
+        "foreground": "border-default",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Bord de contrôle ; border-subtle est volontairement exclu.",
+        "ratio": 5.16,
+        "pass": true
+      },
+      {
+        "foreground": "success",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "success lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 8.62,
+        "pass": true
+      },
+      {
+        "foreground": "warning",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "warning lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 9.06,
+        "pass": true
+      },
+      {
+        "foreground": "danger",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "danger lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 9.47,
+        "pass": true
+      },
+      {
+        "foreground": "info",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "info lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 8.8,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "selection",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte sélectionné sur le fond de sélection.",
+        "ratio": 15.83,
+        "pass": true
+      },
+      {
+        "foreground": "code-text",
+        "background": "code-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal du code — objectif AAA.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "code-comment",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-comment dans un bloc de code — minimum AA.",
+        "ratio": 8.27,
+        "pass": true
+      },
+      {
+        "foreground": "code-keyword",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-keyword dans un bloc de code — minimum AA.",
+        "ratio": 8.54,
+        "pass": true
+      },
+      {
+        "foreground": "code-string",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-string dans un bloc de code — minimum AA.",
+        "ratio": 8.62,
+        "pass": true
+      },
+      {
+        "foreground": "code-number",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-number dans un bloc de code — minimum AA.",
+        "ratio": 8.8,
+        "pass": true
+      },
+      {
+        "foreground": "code-function",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-function dans un bloc de code — minimum AA.",
+        "ratio": 9,
+        "pass": true
+      },
+      {
+        "foreground": "code-variable",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-variable dans un bloc de code — minimum AA.",
+        "ratio": 17.71,
+        "pass": true
+      }
+    ],
+    "dark": [
+      {
+        "foreground": "text-primary",
+        "background": "background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal — objectif AAA.",
+        "ratio": 18.65,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "surface",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal sur surface — objectif AAA.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "text-secondary",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte secondaire — minimum AA.",
+        "ratio": 16.56,
+        "pass": true
+      },
+      {
+        "foreground": "text-muted",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte atténué mais informatif — minimum AA.",
+        "ratio": 7.85,
+        "pass": true
+      },
+      {
+        "foreground": "text-inverse",
+        "background": "action-primary",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal.",
+        "ratio": 7.5,
+        "pass": true
+      },
+      {
+        "foreground": "action-primary",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Contrôle principal contre son environnement.",
+        "ratio": 7.5,
+        "pass": true
+      },
+      {
+        "foreground": "focus-ring",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Anneau de focus visible.",
+        "ratio": 11.99,
+        "pass": true
+      },
+      {
+        "foreground": "border-default",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Bord de contrôle ; border-subtle est volontairement exclu.",
+        "ratio": 5.37,
+        "pass": true
+      },
+      {
+        "foreground": "success",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "success lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "warning",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "warning lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.7,
+        "pass": true
+      },
+      {
+        "foreground": "danger",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "danger lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.54,
+        "pass": true
+      },
+      {
+        "foreground": "info",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "info lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.95,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "selection",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte sélectionné sur le fond de sélection.",
+        "ratio": 9,
+        "pass": true
+      },
+      {
+        "foreground": "code-text",
+        "background": "code-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal du code — objectif AAA.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "code-comment",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-comment dans un bloc de code — minimum AA.",
+        "ratio": 7.85,
+        "pass": true
+      },
+      {
+        "foreground": "code-keyword",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-keyword dans un bloc de code — minimum AA.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "code-string",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-string dans un bloc de code — minimum AA.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "code-number",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-number dans un bloc de code — minimum AA.",
+        "ratio": 13.95,
+        "pass": true
+      },
+      {
+        "foreground": "code-function",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-function dans un bloc de code — minimum AA.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "code-variable",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-variable dans un bloc de code — minimum AA.",
+        "ratio": 17.71,
+        "pass": true
+      }
+    ],
+    "dark-high-contrast": [
+      {
+        "foreground": "text-primary",
+        "background": "background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal — objectif AAA.",
+        "ratio": 18.65,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "surface",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal sur surface — objectif AAA.",
+        "ratio": 18.65,
+        "pass": true
+      },
+      {
+        "foreground": "text-secondary",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte secondaire — minimum AA.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "text-muted",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte atténué mais informatif — minimum AA.",
+        "ratio": 15.05,
+        "pass": true
+      },
+      {
+        "foreground": "text-inverse",
+        "background": "action-primary",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal.",
+        "ratio": 11.99,
+        "pass": true
+      },
+      {
+        "foreground": "action-primary",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Contrôle principal contre son environnement.",
+        "ratio": 11.99,
+        "pass": true
+      },
+      {
+        "foreground": "focus-ring",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Anneau de focus visible.",
+        "ratio": 15.83,
+        "pass": true
+      },
+      {
+        "foreground": "border-default",
+        "background": "background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Bord de contrôle ; border-subtle est volontairement exclu.",
+        "ratio": 10.63,
+        "pass": true
+      },
+      {
+        "foreground": "success",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "success lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "warning",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "warning lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.7,
+        "pass": true
+      },
+      {
+        "foreground": "danger",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "danger lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.54,
+        "pass": true
+      },
+      {
+        "foreground": "info",
+        "background": "background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "info lorsqu’il porte du texte ; une icône ou un libellé reste obligatoire.",
+        "ratio": 13.95,
+        "pass": true
+      },
+      {
+        "foreground": "text-primary",
+        "background": "selection",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte sélectionné sur le fond de sélection.",
+        "ratio": 6.2,
+        "pass": true
+      },
+      {
+        "foreground": "code-text",
+        "background": "code-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Texte principal du code — objectif AAA.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "code-comment",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-comment dans un bloc de code — minimum AA.",
+        "ratio": 15.05,
+        "pass": true
+      },
+      {
+        "foreground": "code-keyword",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-keyword dans un bloc de code — minimum AA.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "code-string",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-string dans un bloc de code — minimum AA.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "code-number",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-number dans un bloc de code — minimum AA.",
+        "ratio": 13.95,
+        "pass": true
+      },
+      {
+        "foreground": "code-function",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-function dans un bloc de code — minimum AA.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "code-variable",
+        "background": "code-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "code-variable dans un bloc de code — minimum AA.",
+        "ratio": 17.71,
+        "pass": true
+      }
+    ]
+  },
+  "componentContrast": {
+    "light": [
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état default.",
+        "ratio": 6.2,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état hover.",
+        "ratio": 9,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état active.",
+        "ratio": 13.81,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état default.",
+        "ratio": 18.65,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état hover.",
+        "ratio": 16.56,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état active.",
+        "ratio": 15.05,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-border",
+        "background": "button-secondary-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Frontière visible du bouton secondaire.",
+        "ratio": 5.43,
+        "pass": true
+      },
+      {
+        "foreground": "button-disabled-text",
+        "background": "button-disabled-background",
+        "target": 3,
+        "purpose": "large-text",
+        "note": "Cible volontaire malgré l’exemption WCAG habituelle des contrôles désactivés.",
+        "ratio": 4.38,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-text",
+        "background": "diff-added-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff added, doublé par signe et libellé.",
+        "ratio": 12.75,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-border",
+        "background": "diff-added-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff added, doublé par signe et libellé.",
+        "ratio": 4.14,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-text",
+        "background": "diff-modified-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff modified, doublé par signe et libellé.",
+        "ratio": 12.99,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-border",
+        "background": "diff-modified-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff modified, doublé par signe et libellé.",
+        "ratio": 4.43,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-text",
+        "background": "diff-removed-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff removed, doublé par signe et libellé.",
+        "ratio": 13.2,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-border",
+        "background": "diff-removed-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff removed, doublé par signe et libellé.",
+        "ratio": 4.71,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-text",
+        "background": "terminal-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Canal terminal text, doublé par contenu textuel.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-dim",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal dim, doublé par contenu textuel.",
+        "ratio": 7.85,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-prompt",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal prompt, doublé par contenu textuel.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-command",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal command, doublé par contenu textuel.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-success",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal success, doublé par contenu textuel.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-warning",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal warning, doublé par contenu textuel.",
+        "ratio": 13.7,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-error",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal error, doublé par contenu textuel.",
+        "ratio": 13.54,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-info",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal info, doublé par contenu textuel.",
+        "ratio": 13.95,
+        "pass": true
+      }
+    ],
+    "dark": [
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état default.",
+        "ratio": 7.5,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état hover.",
+        "ratio": 9.7,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état active.",
+        "ratio": 5.64,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état default.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état hover.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état active.",
+        "ratio": 8.71,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-border",
+        "background": "button-secondary-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Frontière visible du bouton secondaire.",
+        "ratio": 3.97,
+        "pass": true
+      },
+      {
+        "foreground": "button-disabled-text",
+        "background": "button-disabled-background",
+        "target": 3,
+        "purpose": "large-text",
+        "note": "Cible volontaire malgré l’exemption WCAG habituelle des contrôles désactivés.",
+        "ratio": 3.66,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-text",
+        "background": "diff-added-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff added, doublé par signe et libellé.",
+        "ratio": 11.7,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-border",
+        "background": "diff-added-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff added, doublé par signe et libellé.",
+        "ratio": 7.19,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-text",
+        "background": "diff-modified-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff modified, doublé par signe et libellé.",
+        "ratio": 11.82,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-border",
+        "background": "diff-modified-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff modified, doublé par signe et libellé.",
+        "ratio": 7.04,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-text",
+        "background": "diff-removed-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff removed, doublé par signe et libellé.",
+        "ratio": 11.97,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-border",
+        "background": "diff-removed-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff removed, doublé par signe et libellé.",
+        "ratio": 6.92,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-text",
+        "background": "terminal-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Canal terminal text, doublé par contenu textuel.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-dim",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal dim, doublé par contenu textuel.",
+        "ratio": 7.85,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-prompt",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal prompt, doublé par contenu textuel.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-command",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal command, doublé par contenu textuel.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-success",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal success, doublé par contenu textuel.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-warning",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal warning, doublé par contenu textuel.",
+        "ratio": 13.7,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-error",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal error, doublé par contenu textuel.",
+        "ratio": 13.54,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-info",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal info, doublé par contenu textuel.",
+        "ratio": 13.95,
+        "pass": true
+      }
+    ],
+    "dark-high-contrast": [
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état default.",
+        "ratio": 11.99,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état hover.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "button-primary-text",
+        "background": "button-primary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton principal à l’état active.",
+        "ratio": 9.7,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-default",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état default.",
+        "ratio": 11.58,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-hover",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état hover.",
+        "ratio": 8.54,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-text",
+        "background": "button-secondary-active",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Libellé du bouton secondaire à l’état active.",
+        "ratio": 5.41,
+        "pass": true
+      },
+      {
+        "foreground": "button-secondary-border",
+        "background": "button-secondary-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Frontière visible du bouton secondaire.",
+        "ratio": 10.63,
+        "pass": true
+      },
+      {
+        "foreground": "button-disabled-text",
+        "background": "button-disabled-background",
+        "target": 3,
+        "purpose": "large-text",
+        "note": "Cible volontaire malgré l’exemption WCAG habituelle des contrôles désactivés.",
+        "ratio": 3.66,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-text",
+        "background": "diff-added-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff added, doublé par signe et libellé.",
+        "ratio": 11.7,
+        "pass": true
+      },
+      {
+        "foreground": "diff-added-border",
+        "background": "diff-added-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff added, doublé par signe et libellé.",
+        "ratio": 7.19,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-text",
+        "background": "diff-modified-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff modified, doublé par signe et libellé.",
+        "ratio": 11.82,
+        "pass": true
+      },
+      {
+        "foreground": "diff-modified-border",
+        "background": "diff-modified-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff modified, doublé par signe et libellé.",
+        "ratio": 7.04,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-text",
+        "background": "diff-removed-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Texte de diff removed, doublé par signe et libellé.",
+        "ratio": 11.97,
+        "pass": true
+      },
+      {
+        "foreground": "diff-removed-border",
+        "background": "diff-removed-background",
+        "target": 3,
+        "purpose": "non-text",
+        "note": "Rail de diff removed, doublé par signe et libellé.",
+        "ratio": 6.92,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-text",
+        "background": "terminal-background",
+        "target": 7,
+        "purpose": "normal-text",
+        "note": "Canal terminal text, doublé par contenu textuel.",
+        "ratio": 17.71,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-dim",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal dim, doublé par contenu textuel.",
+        "ratio": 15.05,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-prompt",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal prompt, doublé par contenu textuel.",
+        "ratio": 13.76,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-command",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal command, doublé par contenu textuel.",
+        "ratio": 14.12,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-success",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal success, doublé par contenu textuel.",
+        "ratio": 14.07,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-warning",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal warning, doublé par contenu textuel.",
+        "ratio": 13.7,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-error",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal error, doublé par contenu textuel.",
+        "ratio": 13.54,
+        "pass": true
+      },
+      {
+        "foreground": "terminal-info",
+        "background": "terminal-background",
+        "target": 4.5,
+        "purpose": "normal-text",
+        "note": "Canal terminal info, doublé par contenu textuel.",
+        "ratio": 13.95,
+        "pass": true
+      }
+    ]
+  },
+  "failures": [],
+  "discouragedPairs": [
+    {
+      "label": "light-border-subtle-as-control",
+      "foreground": "border-subtle",
+      "background": "background",
+      "ratio": 1.35,
+      "target": 3,
+      "pass": false,
+      "reason": "border-subtle est décoratif ; un contrôle exige border-default."
+    },
+    {
+      "label": "dark-border-subtle-as-control",
+      "foreground": "border-subtle",
+      "background": "background",
+      "ratio": 2.14,
+      "target": 3,
+      "pass": false,
+      "reason": "border-subtle est décoratif ; un contrôle exige border-default."
+    },
+    {
+      "label": "light-primary-8-as-normal-text",
+      "foreground": "primary.8",
+      "background": "background",
+      "ratio": 3.14,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-primary-8",
+      "foreground": "text-inverse",
+      "background": "primary.8",
+      "ratio": 3.31,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-secondary-8-as-normal-text",
+      "foreground": "secondary.8",
+      "background": "background",
+      "ratio": 3.37,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-secondary-8",
+      "foreground": "text-inverse",
+      "background": "secondary.8",
+      "ratio": 3.55,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-red-8-as-normal-text",
+      "foreground": "red.8",
+      "background": "background",
+      "ratio": 3.59,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-red-8",
+      "foreground": "text-inverse",
+      "background": "red.8",
+      "ratio": 3.79,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-amber-8-as-normal-text",
+      "foreground": "amber.8",
+      "background": "background",
+      "ratio": 3.4,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-amber-8",
+      "foreground": "text-inverse",
+      "background": "amber.8",
+      "ratio": 3.58,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-green-8-as-normal-text",
+      "foreground": "green.8",
+      "background": "background",
+      "ratio": 3.16,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-green-8",
+      "foreground": "text-inverse",
+      "background": "green.8",
+      "ratio": 3.33,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-blue-8-as-normal-text",
+      "foreground": "blue.8",
+      "background": "background",
+      "ratio": 3.23,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Le pas 8 est une marque ou bordure, pas du texte normal."
+    },
+    {
+      "label": "light-inverse-on-blue-8",
+      "foreground": "text-inverse",
+      "background": "blue.8",
+      "ratio": 3.4,
+      "target": 4.5,
+      "pass": false,
+      "reason": "Un aplat brut ne reçoit pas automatiquement un texte clair."
+    },
+    {
+      "label": "light-category-1-as-normal-text",
+      "foreground": "visualization.category.1",
+      "background": "background",
+      "ratio": 5.88,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-2-as-normal-text",
+      "foreground": "visualization.category.2",
+      "background": "background",
+      "ratio": 11.64,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-3-as-normal-text",
+      "foreground": "visualization.category.3",
+      "background": "background",
+      "ratio": 3.44,
+      "target": 4.5,
+      "pass": false,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-4-as-normal-text",
+      "foreground": "visualization.category.4",
+      "background": "background",
+      "ratio": 10.57,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-5-as-normal-text",
+      "foreground": "visualization.category.5",
+      "background": "background",
+      "ratio": 3.5,
+      "target": 4.5,
+      "pass": false,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-6-as-normal-text",
+      "foreground": "visualization.category.6",
+      "background": "background",
+      "ratio": 4.86,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-7-as-normal-text",
+      "foreground": "visualization.category.7",
+      "background": "background",
+      "ratio": 6.19,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    },
+    {
+      "label": "light-category-8-as-normal-text",
+      "foreground": "visualization.category.8",
+      "background": "background",
+      "ratio": 8.61,
+      "target": 4.5,
+      "pass": true,
+      "reason": "La catégorie est qualifiée comme marque graphique à 3:1, pas comme texte."
+    }
+  ],
+  "colorVision": {
+    "light": [
+      {
+        "deficiency": "protanopia",
+        "minimumDistance": 0.0734,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "deuteranopia",
+        "minimumDistance": 0.0792,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "tritanopia",
+        "minimumDistance": 0.0766,
+        "riskyPairs": []
+      }
+    ],
+    "dark": [
+      {
+        "deficiency": "protanopia",
+        "minimumDistance": 0.0901,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "deuteranopia",
+        "minimumDistance": 0.0829,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "tritanopia",
+        "minimumDistance": 0.0836,
+        "riskyPairs": []
+      }
+    ],
+    "dark-high-contrast": [
+      {
+        "deficiency": "protanopia",
+        "minimumDistance": 0.1016,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "deuteranopia",
+        "minimumDistance": 0.0828,
+        "riskyPairs": []
+      },
+      {
+        "deficiency": "tritanopia",
+        "minimumDistance": 0.0862,
+        "riskyPairs": []
+      }
+    ]
+  },
+  "colorVisionWarnings": [],
+  "limitations": [
+    "WCAG ratios use sRGB fallback values and opaque semantic colors.",
+    "Color-vision matrices are screening approximations, not clinical simulation.",
+    "Categorical data must also use labels, shapes, line styles or patterns.",
+    "Disabled controls are not used to communicate required information.",
+    "Print and HDR/P3 rendering require separate physical qualification."
+  ]
+}

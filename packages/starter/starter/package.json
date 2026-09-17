@@ -1,0 +1,33 @@
+{
+  "name": "@libre-ai/starter-template",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "bun@1.4.0-canary.1",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "scripts": {
+    "check:bun": "bun scripts/check-bun-version.ts",
+    "prebuild": "bun run check:bun",
+    "build": "bun scripts/build.ts",
+    "prestart": "bun run check:bun",
+    "start": "bun src/server/index.ts",
+    "pretest": "bun run check:bun",
+    "test": "bun test",
+    "pretest:e2e": "bun run check:bun",
+    "test:e2e": "bun run build && playwright test"
+  },
+  "dependencies": {
+    "@libre-ai/ui": "workspace:*",
+    "@libre-ai/web-platform": "workspace:*",
+    "@libre-ai/auth-web": "file:../../../../ai-work-supervision/packages/auth-web",
+    "@libre-ai/contracts": "file:../../../../schemas-and-contracts/packages/sdk-ts",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}
