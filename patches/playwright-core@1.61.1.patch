@@ -1,0 +1,17 @@
+--- a/lib/coreBundle.js
++++ b/lib/coreBundle.js
+@@ -62222,8 +62222,12 @@
+               parsedError.details = detailsValidator(errorDetails ?? {}, "", this._validatorFromWireContext());
+             callback.reject(parsedError);
+           } else {
+-            const validator2 = findValidator(callback.type, callback.method, "Result");
+-            callback.resolve(validator2(result2, "", this._validatorFromWireContext()));
++            try {
++              const validator2 = findValidator(callback.type, callback.method, "Result");
++              callback.resolve(validator2(result2, "", this._validatorFromWireContext()));
++            } catch (validationError) {
++              callback.reject(validationError);
++            }
+           }
+           return;
+         }

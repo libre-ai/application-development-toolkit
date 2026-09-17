@@ -104,6 +104,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "playwright-core@1.61.1": "patches/playwright-core@1.61.1.patch",
+  },
   "overrides": {
     "@libre-ai/auth-web": "file:../ai-work-supervision/packages/auth-web",
     "@libre-ai/contracts": "file:../schemas-and-contracts/packages/sdk-ts",
