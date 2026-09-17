@@ -7,12 +7,19 @@ async function loginViaUI(page: import("@playwright/test").Page): Promise<void> 
     return document.documentElement.getAttribute("data-hydrated") === "true";
   });
 
-  // Click the login button
-  await page.locator("button", { hasText: "Se connecter" }).click();
-
-  // The login flow will navigate to the dev-issuer authorization endpoint
-  // which automatically issues a code and redirects to /v1/auth/callback
-  // which sets the session cookie and redirects back to /
+  // Home already matches the return URL before login starts. Observe the callback
+  // before clicking so the UI assertion cannot consume the asynchronous OIDC wait.
+  const callback = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/v1/auth/callback" &&
+      response.request().isNavigationRequest(),
+    { timeout: 10_000 },
+  );
+  const [response] = await Promise.all([
+    callback,
+    page.locator("button", { hasText: "Se connecter" }).click(),
+  ]);
+  expect(response.status()).toBe(303);
   await page.waitForURL("**/", { timeout: 10_000 });
 
   // Verify the UI has hydrated data by checking for authenticated content
@@ -36,11 +43,7 @@ test("login flow: clicking login button initiates OIDC flow", async ({ page }) =
   });
   expect(sessionState.authenticated).toBe(false);
 
-  // Click the login button
-  await page.locator("button", { hasText: "Se connecter" }).click();
-
-  // The login flow navigates through dev-issuer and redirects back to /
-  await page.waitForURL("**/", { timeout: 10_000 });
+  await loginViaUI(page);
 
   // After login: authenticated UI should be rendered
   const textarea = page.locator("textarea[placeholder='Entrez votre note…']");
@@ -142,4 +145,16 @@ test("contracts validation playground via UI", async ({ page }) => {
   await expect(statusMessage).toBeVisible({ timeout: 10_000 });
   const text = await statusMessage.textContent();
   expect(text).toMatch(/Document (valide|invalide)/);
+});
+
+test("login waits for the OIDC round trip when the login response is delayed", async ({ page }) => {
+  await page.route("**/v1/auth/login", async (route) => {
+    // Keep the response beyond the UI assertion budget but inside the existing OIDC budget.
+    await new Promise<void>((resolve) => setTimeout(resolve, 6_000));
+    await route.continue();
+  });
+  await page.goto("/");
+  await loginViaUI(page);
+  const session = await page.evaluate(async () => (await fetch("/api/session")).json());
+  expect(session.authenticated).toBe(true);
 });
