@@ -14,6 +14,8 @@ bun run --cwd packages/starter/starter start
 
 Open `https://127.0.0.1:3000`. The development server generates a temporary self-signed certificate; the browser will not trust it by default.
 
+Tests require Python 3 alongside Bun and the browser dependencies. Failed browser tests print a redacted diagnostic summary and retain their failing exit code.
+
 ```sh
 bun run --cwd packages/starter/starter test
 bun run --cwd packages/starter/starter test:e2e

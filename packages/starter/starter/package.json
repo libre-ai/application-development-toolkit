@@ -15,9 +15,9 @@
     "prestart": "bun run check:bun",
     "start": "bun src/server/index.ts",
     "pretest": "bun run check:bun",
-    "test": "bun test",
+    "test": "bun test && python3 -B -m unittest discover -s scripts -p 'test_*.py'",
     "pretest:e2e": "bun run check:bun",
-    "test:e2e": "bun run build && playwright test"
+    "test:e2e": "bun run build && bun scripts/run-e2e.ts"
   },
   "dependencies": {
     "@libre-ai/ui": "workspace:*",
