@@ -1,31 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-async function loginViaUI(page: import("@playwright/test").Page): Promise<void> {
-  // Hydration: wait for client module to execute and set data-hydrated
-  // Use waitForFunction to poll the attribute since it's set asynchronously
-  await page.waitForFunction(() => {
-    return document.documentElement.getAttribute("data-hydrated") === "true";
-  });
-
-  // Home already matches the return URL before login starts. Observe the callback
-  // before clicking so the UI assertion cannot consume the asynchronous OIDC wait.
-  const callback = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === "/v1/auth/callback" &&
-      response.request().isNavigationRequest(),
-    { timeout: 10_000 },
-  );
-  const [response] = await Promise.all([
-    callback,
-    page.locator("button", { hasText: "Se connecter" }).click(),
-  ]);
-  expect(response.status()).toBe(303);
-  await page.waitForURL("**/", { timeout: 10_000 });
-
-  // Verify the UI has hydrated data by checking for authenticated content
-  // The authenticated state should show the form to add notes
-  await expect(page.locator("textarea[placeholder='Entrez votre note…']")).toBeVisible();
-}
+import { loginViaUI } from "./login-via-ui";
 
 test("login flow: clicking login button initiates OIDC flow", async ({ page }) => {
   // Navigate to home

@@ -16,7 +16,7 @@ export default defineConfig({
     },
     {
       name: "chromium",
-      testMatch: /journal\.e2e\.ts/,
+      testMatch: /(?:journal|navigation-race)\.e2e\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     {
