@@ -17,6 +17,39 @@ const DIRECTIONS = new Set(["server-send", "client-receive", "client-send"]);
 const BUNDLE_SHA =
 	"38511c1916e1950b9f70b4292d94863e8cc923244a5976bc042507f0cf124540";
 const LIMIT = 4096;
+const SIGNALS = new Set([
+	"SIGTERM",
+	"SIGKILL",
+	"SIGINT",
+	"SIGHUP",
+	"SIGSEGV",
+	"SIGABRT",
+	"SIGILL",
+	"SIGBUS",
+	"SIGTRAP",
+]);
+const LIFECYCLE = new Set([
+	"internal-close",
+	"internal-kill",
+	"browser-disconnected",
+	"process-close-request",
+	"process-kill-request",
+	"transport-close",
+	"process-exit",
+	"process-close",
+	"process-already-exited",
+	"worker-signal-event",
+	"worker-exit-event",
+]);
+function exitCategory(value) {
+	if (value === null || value === undefined) return "none";
+	if (!Number.isSafeInteger(value)) return "other";
+	return value === 0 ? "zero" : "nonzero";
+}
+function signalCategory(value) {
+	if (value === null || value === undefined) return "none";
+	return SIGNALS.has(value) ? value : "other";
+}
 function identity(value) {
 	return typeof value === "string" && value.length > 0 && value.length <= 128;
 }
@@ -139,9 +172,30 @@ function createRecorder({ clock, present, workerIndex = null }) {
 			if (direction === "client-receive") calls.delete(message.id);
 		}
 	}
+	function lifecycle(guid, category, code = null, signal = null) {
+		const worker =
+			category === "worker-signal-event" || category === "worker-exit-event";
+		if (
+			!LIFECYCLE.has(category) ||
+			(worker ? guid !== null : !identity(guid))
+		) {
+			incomplete = true;
+			return;
+		}
+		const object = worker ? null : alias(guid);
+		if (!worker && object === null) return;
+		append({
+			direction: worker ? "worker-lifecycle" : "server-lifecycle",
+			kind: "lifecycle",
+			object,
+			category,
+			exitCategory: exitCategory(code),
+			signal: signalCategory(signal),
+		});
+	}
 	function snapshot() {
 		return {
-			schemaVersion: "opaque-playwright-order.v2",
+			schemaVersion: "opaque-playwright-order.v3",
 			workerIndex:
 				integer(workerIndex) && workerIndex < 26 ? workerIndex : null,
 			incomplete,
@@ -152,7 +206,7 @@ function createRecorder({ clock, present, workerIndex = null }) {
 	function markIncomplete() {
 		incomplete = true;
 	}
-	return { observe, snapshot, markIncomplete };
+	return { observe, lifecycle, snapshot, markIncomplete };
 }
 function validateJournal(value) {
 	if (
@@ -163,7 +217,7 @@ function validateJournal(value) {
 			"dropped",
 			"events",
 		]) ||
-		value.schemaVersion !== "opaque-playwright-order.v2" ||
+		value.schemaVersion !== "opaque-playwright-order.v3" ||
 		(value.workerIndex !== null &&
 			(!integer(value.workerIndex) || value.workerIndex >= 26)) ||
 		typeof value.incomplete !== "boolean" ||
@@ -180,6 +234,7 @@ function validateJournal(value) {
 			dispose: ["type", "reason"],
 			close: ["type", "reason"],
 			"goto-request": ["rpc"],
+			lifecycle: ["category", "exitCategory", "signal"],
 			"goto-result": ["rpc", "response", "hasError", "responsePresent"],
 		}[row?.kind];
 		if (
@@ -189,13 +244,25 @@ function validateJournal(value) {
 			row.sequence <= previous ||
 			!integer(row.elapsedMs) ||
 			row.elapsedMs > 3600000 ||
-			!DIRECTIONS.has(row.direction) ||
-			!integer(row.object) ||
-			row.object === 0 ||
-			row.object > 8192
+			(row.kind !== "lifecycle" && !DIRECTIONS.has(row.direction)) ||
+			((row.kind !== "lifecycle" || row.object !== null) &&
+				(!integer(row.object) || row.object === 0 || row.object > 8192))
 		)
 			return false;
 		previous = row.sequence;
+		if (row.kind === "lifecycle") {
+			const worker =
+				row.category === "worker-signal-event" ||
+				row.category === "worker-exit-event";
+			if (
+				!LIFECYCLE.has(row.category) ||
+				!["zero", "nonzero", "none", "other"].includes(row.exitCategory) ||
+				!(SIGNALS.has(row.signal) || ["none", "other"].includes(row.signal)) ||
+				row.direction !== (worker ? "worker-lifecycle" : "server-lifecycle") ||
+				(worker ? row.object !== null : row.object === null)
+			)
+				return false;
+		}
 		if ("type" in row && !TYPES.has(row.type)) return false;
 		if (
 			"browser" in row &&
@@ -221,7 +288,111 @@ function validateJournal(value) {
 	}
 	return true;
 }
-function attach(client, server, recorder) {
+function createLifecycleObserver(server, recorder, worker) {
+	const observed = new WeakSet();
+	let count = 0;
+	function incomplete() {
+		try {
+			recorder.markIncomplete();
+		} catch {
+			/* Keep original runtime behavior. */
+		}
+	}
+	function record(guid, category, code = null, signal = null) {
+		try {
+			recorder.lifecycle(guid, category, code, signal);
+		} catch {
+			incomplete();
+		}
+	}
+	function wrap(owner, method, before) {
+		try {
+			const original = owner?.[method];
+			if (typeof original !== "function") {
+				incomplete();
+				return;
+			}
+			const wrapped = function (...args) {
+				try {
+					before(args);
+				} catch {
+					incomplete();
+				}
+				return Reflect.apply(original, this, args);
+			};
+			owner[method] = wrapped;
+			if (owner[method] !== wrapped) incomplete();
+		} catch {
+			incomplete();
+		}
+	}
+	// Wrapping emit preserves signal listener counts and Node's default handling.
+	wrap(worker, "emit", (args) => {
+		if (SIGNALS.has(args[0]))
+			record(null, "worker-signal-event", null, args[0]);
+		if (args[0] === "exit") record(null, "worker-exit-event", args[1]);
+	});
+	function observe(message) {
+		if (message?.method !== "__create__" || message.params?.type !== "Browser")
+			return;
+		try {
+			const guid = message.params.guid;
+			if (!identity(guid)) {
+				incomplete();
+				return;
+			}
+			const browser = server._dispatcherByGuid?.get(guid)?._object;
+			if (!browser || typeof browser !== "object") {
+				incomplete();
+				return;
+			}
+			if (observed.has(browser)) return;
+			if (count >= 64) {
+				incomplete();
+				return;
+			}
+			observed.add(browser);
+			count++;
+			for (const [method, category] of [
+				["_close", "internal-close"],
+				["didClose", "browser-disconnected"],
+				["killForTests", "internal-kill"],
+			])
+				wrap(browser, method, () => record(guid, category));
+			const browserProcess = browser.options?.browserProcess;
+			wrap(browserProcess, "close", () =>
+				record(guid, "process-close-request"),
+			);
+			wrap(browserProcess, "kill", () => record(guid, "process-kill-request"));
+			const transport = browser._connection?._transport;
+			// The verified PipeTransport setter may invoke onclose immediately. Wrap
+			// its existing own callback instead, without changing setter behavior.
+			const callback =
+				transport && Object.getOwnPropertyDescriptor(transport, "_onclose");
+			if (!callback || typeof callback.value !== "function") incomplete();
+			else wrap(transport, "_onclose", () => record(guid, "transport-close"));
+			const child = browserProcess?.process;
+			wrap(child, "emit", (args) => {
+				if (args[0] === "exit") record(guid, "process-exit", args[1], args[2]);
+				if (args[0] === "close")
+					record(guid, "process-close", args[1], args[2]);
+			});
+			if (child && (child.exitCode != null || child.signalCode != null)) {
+				incomplete();
+				record(
+					guid,
+					"process-already-exited",
+					child.exitCode,
+					child.signalCode,
+				);
+			}
+		} catch {
+			incomplete();
+		}
+	}
+	return { observe };
+}
+function attach(client, server, recorder, lifecycle = null) {
 	for (const [owner, method, direction] of [
 		[server, "onmessage", "server-send"],
 		[client, "dispatch", "client-receive"],
@@ -235,6 +406,7 @@ function attach(client, server, recorder) {
 					args[0],
 					client._objects.get(args[0]?.guid)?._type,
 				);
+				if (direction === "server-send") lifecycle?.observe(args[0]);
 			} catch {
 				/* Observability must not replace transport behavior. */
 				try {
@@ -309,24 +481,31 @@ function install() {
 			failed = true;
 		}
 	}
-	attach(client, server, {
-		markIncomplete: recorder.markIncomplete,
-		observe(...args) {
-			recorder.observe(...args);
-			const [direction, message] = args;
-			if (
-				direction === "client-receive" &&
-				message?.result?.response?.guid &&
-				!client._objects.has(message.result.response.guid)
-			)
-				persist();
+	const lifecycle = createLifecycleObserver(server, recorder, process);
+	attach(
+		client,
+		server,
+		{
+			markIncomplete: recorder.markIncomplete,
+			observe(...args) {
+				recorder.observe(...args);
+				const [direction, message] = args;
+				if (
+					direction === "client-receive" &&
+					message?.result?.response?.guid &&
+					!client._objects.has(message.result.response.guid)
+				)
+					persist();
+			},
 		},
-	});
+		lifecycle,
+	);
 	persist();
 	process.on("exit", () => persist(true));
 }
 module.exports = {
 	createRecorder,
+	createLifecycleObserver,
 	validateJournal,
 	attach,
 	resolveCore,

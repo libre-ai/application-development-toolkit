@@ -68,9 +68,9 @@ jobs:
           --test-coverage-exclude='scripts/diagnostics/*.test.cjs'
           --test-coverage-lines=80 --test-coverage-branches=80 --test-coverage-functions=80
           scripts/diagnostics/diagnostic.test.cjs
-      - name: Install exact Playwright browsers without system changes
+      - name: Install exact Playwright browsers with existing product system dependencies
         working-directory: composition/application-development-toolkit/packages/ui
-        run: bun x --no-install playwright install chromium firefox webkit
+        run: bun x --no-install playwright install --with-deps chromium firefox webkit
       - name: Reproduce the product build
         working-directory: composition/application-development-toolkit
         run: bun run build

@@ -67,3 +67,53 @@ A new workflow_dispatch file must exist on the default branch to receive that ev
 - The smallest authorized cleanup solution records observation and cleanup separately. Known launcher-group descendants receive bounded TERM/KILL even after normal launcher exit. Detached browser descendants remain unverified; runner teardown pending. The diagnostic deliberately returns exit 2 on successful product tests and never declares diagnosticComplete/productGateQualified. No subreaper, privilege, VM or general execution framework was added.
 - Coverage thresholds for this new diagnostic are 80% lines/branches/functions. A preliminary exploratory 90% function threshold failed; the enforced 80/80/80 threshold is stated explicitly, with the Linux main/preflight path not locally covered. Product coverage gates remain unchanged.
 - Native PR execution, hosted runner dependencies and actual detached-browser cleanup remain unqualified. No browser suite was rerun while preparing this candidate. The candidate is ready for independent review, not a resolved GUID defect.
+
+## Successor plan — browser lifecycle, 2026-09-29
+
+Base: cf758b0dd287083c0bd5f55e91f241e6ffa9bdc6, separate clean checkout.
+Native diagnostic run36531698964 proved Response creation followed by ancestor
+disposal before goto delivery, without a preceding client close of those
+ancestors. The server closure trigger remains unknown. Browser installation
+warned of35 missing system libraries;5 WebKit outcomes were immediate failures
+whose individual messages were not retained. Neither observation is a GUID fix.
+
+Hypothesis to distinguish: an internal browser close, a process termination
+(with a categorical exit/signal), or a pipe disconnection precedes server
+disposal. Observe entry to existing methods and EventEmitter.emit, preserving
+receiver/arguments/return/exception and adding no await or signal handlers.
+Attach once per server Browser create, via the verified dispatcher's object;
+wrap the PipeTransport own _onclose callback directly, avoiding its setter
+(which may invoke callbacks on assignment). Earlier-than-attachment events and
+unsupported objects mark evidence incomplete. No free text, PID or browser
+payload is exported; worker signals have no Browser alias. Hooks, aliases and
+events remain bounded. The lifecycle journal schema advances to v3.
+
+- [x] RED tests for opaque lifecycle categories, same sequence as protocol,
+  hook fault/incomplete, duplicate registration, unsupported/missing methods,
+  process already exited, signal delivery, actual installed dispatcher lookup,
+  strict export rejection and missing-library outcome classification.
+- [x] Implement the observer only in protocol.cjs, reporter classification and
+  any required receipt metadata in run.cjs. Leave all product code untouched.
+- [x] Reuse the product's existing `playwright install --with-deps chromium
+  firefox webkit` setup in the separate diagnostic workflow. This explicitly
+  permits the hosted runner's existing system-dependency installation; it is a
+  changed experimental input, not an immutable package snapshot. No token,
+  repository permission, source/toolchain pin or test-policy change.
+- [x] Run pinned diagnostic tests/coverage, installed synthetic SDK integration,
+  existing root checks and unit suite. No browser suite or workflow execution
+  in this preparation. Bind hashes, source diff, tool identities and limits.
+- [ ] Freeze local DCO candidate, obtain independent review before any push/run.
+
+The native closure oracle requires an eventual reviewed PR experiment. Synthetic
+passing tests do not establish native hook qualification or causality. A signal
+or nonzero exit may suggest a crash but is not an automatic crash verdict.
+A transport closure with no process event remains an unexplained disconnect.
+`diagnosticComplete=false`, cleanup unverified and required checks unchanged.
+
+Verification:33 diagnostic tests,105 declared Bun product tests,16 Python tests,
+root check, Biome and REUSE pass with pinned tools. A nonwritable method fixture
+first exposed silent hook assignment; verification now marks that case incomplete.
+The initial root invocation lacked package-level dependency links; bare bun test
+also ran Node-only diagnostics under the wrong runtime without their workspace
+configuration. Both preparation/command errors are retained in external evidence,
+not described as predefined failures. The corrected declared commands pass.

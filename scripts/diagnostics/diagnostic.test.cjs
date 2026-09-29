@@ -801,3 +801,445 @@ test("natural launcher exit still triggers bounded cleanup of its remaining proc
 		fs.rmSync(root, { recursive: true });
 	}
 });
+
+test("lifecycle projection shares protocol sequence and rejects free text at export", () => {
+	const recorder = api().createRecorder({
+		clock: () => 3,
+		present: () => true,
+	});
+	assert.equal(typeof recorder.lifecycle, "function");
+	recorder.observe("server-send", {
+		method: "__create__",
+		guid: "root",
+		params: {
+			type: "Browser",
+			guid: "browser",
+			initializer: { version: "149.0.7827.55" },
+		},
+	});
+	recorder.lifecycle("browser", "process-exit", 7, "SIGSEGV");
+	recorder.lifecycle(null, "worker-signal-event", privateMarker, "SIGTERM");
+	recorder.lifecycle("browser", "process-close", privateMarker, privateMarker);
+	const value = recorder.snapshot();
+	assert.equal(value.schemaVersion, "opaque-playwright-order.v3");
+	assert.equal(api().validateJournal(value), true);
+	assert.equal(value.events[1].object, value.events[0].object);
+	assert.deepEqual(
+		value.events
+			.slice(1)
+			.map((row) => [row.sequence, row.category, row.exitCategory, row.signal]),
+		[
+			[2, "process-exit", "nonzero", "SIGSEGV"],
+			[3, "worker-signal-event", "other", "SIGTERM"],
+			[4, "process-close", "other", "other"],
+		],
+	);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
+	for (const mutate of [
+		(row) => {
+			row.pid = 123;
+		},
+		(row) => {
+			row.category = privateMarker;
+		},
+		(row) => {
+			row.signal = privateMarker;
+		},
+		(row) => {
+			row.exitCategory = privateMarker;
+		},
+		(row) => {
+			row.direction = "client-send";
+		},
+		(row) => {
+			row.object = null;
+		},
+	]) {
+		const invalid = structuredClone(value);
+		mutate(invalid.events[1]);
+		assert.equal(api().validateJournal(invalid), false);
+	}
+	recorder.lifecycle("browser", privateMarker);
+	assert.equal(recorder.snapshot().incomplete, true);
+	assert.equal(recorder.snapshot().events.length, 4);
+});
+function lifecycleFixture() {
+	const { EventEmitter } = require("node:events");
+	const child = new EventEmitter();
+	child.exitCode = null;
+	child.signalCode = null;
+	child.pid = privateMarker;
+	const failure = new Error(privateMarker);
+	const returned = Promise.resolve(17);
+	const processObject = {
+		process: child,
+		close() {
+			return returned;
+		},
+		kill() {
+			throw failure;
+		},
+	};
+	const transport = {
+		_onclose(reason) {
+			assert.equal(reason, privateMarker);
+			return 19;
+		},
+		set onclose(_) {
+			throw new Error("setter must never be called");
+		},
+	};
+	const browser = {
+		options: { browserProcess: processObject },
+		_connection: { _transport: transport },
+		_close(reason) {
+			assert.equal(this, browser);
+			assert.equal(reason, privateMarker);
+			return processObject.close();
+		},
+		didClose() {},
+		killForTests() {
+			return processObject.kill();
+		},
+	};
+	const server = {
+		_dispatcherByGuid: new Map([["browser", { _object: browser }]]),
+	};
+	return {
+		child,
+		processObject,
+		transport,
+		browser,
+		server,
+		failure,
+		returned,
+		worker: new EventEmitter(),
+	};
+}
+test("lifecycle hooks preserve delegation and correlate one attachment per browser", () => {
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	const f = lifecycleFixture();
+	assert.equal(typeof api().createLifecycleObserver, "function");
+	const hook = api().createLifecycleObserver(f.server, recorder, f.worker);
+	const message = {
+		method: "__create__",
+		params: { type: "Browser", guid: "browser" },
+	};
+	hook.observe(message);
+	hook.observe(message);
+	assert.equal(f.browser._close(privateMarker), f.returned);
+	assert.equal(f.transport._onclose(privateMarker), 19);
+	f.browser.didClose();
+	assert.throws(
+		() => f.browser.killForTests(),
+		(error) => error === f.failure,
+	);
+	assert.equal(f.worker.listenerCount("SIGTERM"), 0);
+	assert.equal(f.worker.emit("SIGTERM", privateMarker), false);
+	f.child.emit("exit", null, "SIGSEGV");
+	f.child.emit("close", 1, null);
+	f.worker.emit("exit", 0);
+	assert.deepEqual(
+		recorder.snapshot().events.map((row) => row.category),
+		[
+			"internal-close",
+			"process-close-request",
+			"transport-close",
+			"browser-disconnected",
+			"internal-kill",
+			"process-kill-request",
+			"worker-signal-event",
+			"process-exit",
+			"process-close",
+			"worker-exit-event",
+		],
+	);
+	assert.equal(api().validateJournal(recorder.snapshot()), true);
+	assert.equal(
+		JSON.stringify(recorder.snapshot()).includes(privateMarker),
+		false,
+	);
+	assert.equal(recorder.snapshot().incomplete, false);
+});
+test("unsupported lifecycle hooks and recorder faults remain incomplete without replacing behavior", () => {
+	assert.equal(typeof api().createLifecycleObserver, "function");
+	const f = lifecycleFixture();
+	let incomplete = false;
+	const hook = api().createLifecycleObserver(
+		f.server,
+		{
+			lifecycle() {
+				throw new Error(privateMarker);
+			},
+			markIncomplete() {
+				incomplete = true;
+			},
+		},
+		f.worker,
+	);
+	hook.observe({
+		method: "__create__",
+		params: { type: "Browser", guid: "browser" },
+	});
+	assert.equal(f.browser._close(privateMarker), f.returned);
+	assert.equal(incomplete, true);
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	const bad = lifecycleFixture();
+	delete bad.browser.didClose;
+	const observer = api().createLifecycleObserver(
+		bad.server,
+		recorder,
+		bad.worker,
+	);
+	observer.observe({
+		method: "__create__",
+		params: { type: "Browser", guid: "browser" },
+	});
+	assert.equal(recorder.snapshot().incomplete, true);
+	const missing = api().createRecorder({ clock: () => 1, present: () => true });
+	api()
+		.createLifecycleObserver({}, missing, bad.worker)
+		.observe({
+			method: "__create__",
+			params: { type: "Browser", guid: "absent" },
+		});
+	assert.equal(missing.snapshot().incomplete, true);
+});
+test("already exited browser and attachment saturation cannot be reported complete", () => {
+	assert.equal(typeof api().createLifecycleObserver, "function");
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	const f = lifecycleFixture();
+	f.child.exitCode = 1;
+	api()
+		.createLifecycleObserver(f.server, recorder, f.worker)
+		.observe({
+			method: "__create__",
+			params: { type: "Browser", guid: "browser" },
+		});
+	assert.equal(recorder.snapshot().incomplete, true);
+	assert.equal(
+		recorder.snapshot().events[0].category,
+		"process-already-exited",
+	);
+	const bounded = api().createRecorder({ clock: () => 1, present: () => true });
+	const root = lifecycleFixture();
+	const hook = api().createLifecycleObserver(root.server, bounded, root.worker);
+	for (let i = 0; i < 65; i++) {
+		const item = lifecycleFixture();
+		root.server._dispatcherByGuid.set(`b${i}`, { _object: item.browser });
+		hook.observe({
+			method: "__create__",
+			params: { type: "Browser", guid: `b${i}` },
+		});
+	}
+	assert.equal(bounded.snapshot().incomplete, true);
+});
+test("server create attaches lifecycle observation before existing transport delivery", () => {
+	const f = lifecycleFixture();
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	assert.equal(typeof api().createLifecycleObserver, "function");
+	f.server.onmessage = () => {
+		f.browser._close(privateMarker);
+		return 27;
+	};
+	const client = { _objects: new Map(), dispatch() {}, onmessage() {} };
+	api().attach(
+		client,
+		f.server,
+		recorder,
+		api().createLifecycleObserver(f.server, recorder, f.worker),
+	);
+	assert.equal(
+		f.server.onmessage({
+			method: "__create__",
+			guid: "root",
+			params: { type: "Browser", guid: "browser" },
+		}),
+		27,
+	);
+	assert.deepEqual(
+		recorder.snapshot().events.map((row) => row.kind),
+		["create", "lifecycle", "lifecycle"],
+	);
+});
+test("reporter distinguishes missing libraries and closure through closed categories only", () => {
+	const Reporter = reporterApi();
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), "opaque-category-"));
+	try {
+		const reporter = new Reporter({ output: root });
+		const cases = Array.from({ length: 5 }, () => ({
+			parent: { project: () => ({ name: "webkit" }) },
+		}));
+		reporter.onBegin({}, { allTests: () => cases });
+		const messages = [
+			`Host system is missing dependencies to run browsers. ${privateMarker}`,
+			`Executable doesn't exist ${privateMarker}`,
+			`Target page, context or browser has been closed ${privateMarker}`,
+			privateMarker,
+			privateMarker.repeat(7000),
+		];
+		cases.forEach((item, index) => {
+			reporter.onTestEnd(item, {
+				status: "failed",
+				retry: 0,
+				duration: 2,
+				workerIndex: index,
+				errors: [{ message: messages[index], stack: privateMarker }],
+			});
+		});
+		const value = JSON.parse(fs.readFileSync(path.join(root, "tests.json")));
+		assert.deepEqual(
+			value.tests.map((row) => row.errorCategory),
+			[
+				"missing-system-dependencies",
+				"missing-browser-executable",
+				"target-closed",
+				"other",
+				"other",
+			],
+		);
+		assert.equal(value.schemaVersion, "opaque-playwright-tests.v2");
+		assert.equal(Reporter.validateReport(value), true);
+		assert.equal(JSON.stringify(value).includes(privateMarker), false);
+		value.tests[0].errorCategory = privateMarker;
+		assert.equal(Reporter.validateReport(value), false);
+	} finally {
+		fs.rmSync(root, { recursive: true });
+	}
+});
+
+test("installed BrowserDispatcher exposes its registered object before create delivery and keeps real close behavior", async () => {
+	const { core, bundle, bundleSha } = api().resolveCore(
+		process.env.TOOLKIT_DIAG_TEST_WORKSPACE,
+	);
+	const pw = core.inprocess.createInProcessPlaywright();
+	const client = pw._connection;
+	const server = client.toImpl(client);
+	const impl = client.toImpl(pw);
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: (guid) => client._objects.has(guid),
+	});
+	const { EventEmitter } = require("node:events");
+	const worker = new EventEmitter();
+	const child = new EventEmitter();
+	child.exitCode = null;
+	child.signalCode = null;
+	const browserProcess = {
+		process: child,
+		close: async () => browser.didClose(),
+		kill: async () => {},
+	};
+	const browser = new core.server.Browser(impl.chromium, {
+		name: "chromium",
+		browserType: "chromium",
+		browserProcess,
+	});
+	browser.version = () => "149.0.7827.55";
+	browser.contexts = () => [];
+	browser.isConnected = () => false;
+	browser._connection = { _transport: { _onclose() {} } };
+	impl.chromium.launch = async () => browser;
+	api().attach(
+		client,
+		server,
+		recorder,
+		api().createLifecycleObserver(server, recorder, worker),
+	);
+	const sdkBrowser = await pw.chromium.launch();
+	assert.equal(server._dispatcherByGuid.get(sdkBrowser._guid)._object, browser);
+	await sdkBrowser.close({ reason: privateMarker });
+	await new Promise((resolve) => setImmediate(resolve));
+	const value = recorder.snapshot();
+	assert.equal(api().validateJournal(value), true);
+	assert.equal(value.incomplete, false);
+	assert.deepEqual(
+		value.events
+			.filter((row) => row.kind === "lifecycle")
+			.map((row) => row.category),
+		["internal-close", "process-close-request", "browser-disconnected"],
+	);
+	const internal = value.events.find(
+		(row) => row.category === "internal-close",
+	);
+	const disposed = value.events.find(
+		(row) => row.direction === "client-receive" && row.kind === "dispose",
+	);
+	assert.equal(internal.object, disposed.object);
+	assert.ok(internal.sequence < disposed.sequence);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
+	assert.equal(
+		require("node:crypto")
+			.createHash("sha256")
+			.update(fs.readFileSync(bundle))
+			.digest("hex"),
+		bundleSha,
+	);
+});
+test("lifecycle saturation and exported events keep the original bounds and closed schema", () => {
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	for (let i = 0; i < 4200; i++)
+		recorder.lifecycle("browser", "process-close", i, "SIGTERM");
+	const value = recorder.snapshot();
+	assert.equal(value.events.length, 4096);
+	assert.equal(value.dropped, 104);
+	assert.equal(value.incomplete, true);
+	assert.equal(api().validateJournal(value), true);
+	assert.ok(Buffer.byteLength(JSON.stringify(value)) < 1048576);
+	const root = fs.mkdtempSync(
+		path.join(os.tmpdir(), "opaque-lifecycle-export-"),
+	);
+	try {
+		const raw = path.join(root, "raw");
+		fs.mkdirSync(raw);
+		fs.writeFileSync(path.join(raw, "events-0.json"), JSON.stringify(value));
+		runnerApi().exportEvidence(raw, path.join(root, "safe"));
+		assert.deepEqual(
+			JSON.parse(fs.readFileSync(path.join(root, "safe/events-0.json"))),
+			value,
+		);
+		value.events[0].stack = privateMarker;
+		fs.writeFileSync(path.join(raw, "events-0.json"), JSON.stringify(value));
+		assert.throws(() =>
+			runnerApi().exportEvidence(raw, path.join(root, "unsafe")),
+		);
+		assert.equal(fs.existsSync(path.join(root, "unsafe")), false);
+	} finally {
+		fs.rmSync(root, { recursive: true });
+	}
+});
+
+test("nonwritable hook methods cannot produce a falsely complete lifecycle journal", () => {
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	const f = lifecycleFixture();
+	Object.defineProperty(f.browser, "didClose", {
+		value: f.browser.didClose,
+		writable: false,
+		configurable: false,
+	});
+	api()
+		.createLifecycleObserver(f.server, recorder, f.worker)
+		.observe({
+			method: "__create__",
+			params: { type: "Browser", guid: "browser" },
+		});
+	assert.equal(recorder.snapshot().incomplete, true);
+});

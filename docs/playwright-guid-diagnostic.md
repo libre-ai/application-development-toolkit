@@ -48,7 +48,11 @@ The normal failure summarizer still uses its default output directory.
 `events-N.json` contains only a fixed schema: per-process worker index, event
 sequence and relative time, closed direction/kind/type/browser enums, integer
 object aliases, parent aliases, numeric protocol RPC IDs, boolean response
-presence, and error presence. Browser identity is categorized from the actual
+presence, and error presence. The lifecycle journal uses schema v3; its additional
+closed categories record internal close/kill, transport close, browser disconnect,
+child-process exit/close, and worker signal/exit events. Process values are reduced
+to zero/nonzero/none/other and a fixed signal enum. Browser events use the same
+opaque alias; worker lifecycle events have no Browser object. No PID is retained. Browser identity is categorized from the actual
 Browser create initializer only when its version matches the known pin:
 Chromium 149.0.7827.55/revision 1228, Firefox 151.0/revision 1532,
 WebKit 26.5/revision 2311. Unknown versions remain `unknown`.
@@ -56,12 +60,17 @@ WebKit 26.5/revision 2311. Unknown versions remain `unknown`.
 `tests.json` contains ordinal, fixed project enum, worker index, status,
 duration, retry count and a coarse error category for each finished test.
 It never stores test names, locations, errors or attachments. `unknown-guid`
-is an error-message classifier, not proof of the causal protocol order.
+is an error-message classifier, not proof of the causal protocol order. Schema v2
+also distinguishes `missing-system-dependencies`, `missing-browser-executable`,
+and `target-closed`; all other text becomes `other`. These categories inspect at
+most16 messages of at most65536 characters, never serialize messages or stacks,
+and preserve unknown-guid precedence when more than one error is present.
 `receipt.json` binds inputs, diagnostic revision, script hashes, toolchain,
 runner image version when recognized, duration, exit, observation completeness and process-cleanup limits.
 
 Limits: 64 journal slots, 4096 retained events per process, 8192 object aliases,
-1024 pending goto calls, 128-character internal identities, 1 MiB per input
+1024 pending goto calls, 64 Browser hook attachments per process,
+128-character internal identities, 1 MiB per input
 file, 65 input files total, 26 test outcomes. Saturation sets `incomplete`;
 a ring-buffer prefix loss precludes a full creation/disposal history. Output
 is explicitly allowlisted and validated before a fresh sanitized directory is
@@ -125,8 +134,49 @@ local synthetic transport tests and macOS root checks are separate evidence.
 
 `ubuntu-24.04` is a mutable hosted runner label, not an immutable OS image.
 Browser binaries are pinned by the installed Playwright revision. Installation
-omits `--with-deps` and sudo; missing system libraries block execution explicitly.
+now reuses the existing product CI command `playwright install --with-deps
+chromium firefox webkit`. It installs native system packages on the disposable
+hosted runner using the product recipe, which can invoke elevation there. This
+is an explicit setup change from cf758b0: that run downloaded WebKit but warned
+about35 missing libraries, then recorded five immediate unclassified failures.
+System package versions depend on the runner repositories; this is not an
+immutable OS/dependency snapshot. No repository/token permission was expanded.
 The probe builds the product then runs the starter suite directly, without the
 preceding UI/bun-app browser suites from the original full CI job. This and the
 observer/reporter are experimental differences. The QEMU H2 run found no missing
 GUID (14 pass, 10 timeout, 2 failures); it neither explains nor fixes native CI.
+
+## Lifecycle successor and causal limits
+
+Native run36531698964 at cf758b0 observed creation of a Response, ancestor
+disposal and then a client goto result referencing the absent Response. No
+client close of those ancestors preceded the result. The server closure trigger
+was not observed. Run36531699532 separately failed the product gate on a CSRF
+goto GUID; its lack of these journals precludes an identical causal attribution.
+
+The successor attaches to each registered server Browser when its create message
+is sent. It wraps existing Browser methods, browserProcess.close/kill, the
+verified PipeTransport own _onclose callback and ChildProcess.emit. It avoids
+the transport setter, which can invoke a callback on assignment. Worker signals
+are observed through existing emit delivery without adding signal listeners.
+Each wrapper preserves receiver, arguments, return and thrown identity, adds no
+await, and marks observation incomplete on an unsupported hook or recorder error.
+A process already exited at attachment is recorded as such and incomplete.
+Events before Browser attachment cannot be reconstructed. A killed worker may
+never emit a JavaScript exit or signal event.
+
+An internal-close/process-close-request before disconnect identifies an observed
+request path; it does not identify the requester. An exit signal/nonzero code
+may support a crash hypothesis but is not itself a crash verdict. A pipe closure
+without a process event is an unexplained disconnect. Child events are observed
+at Node emit entry, not at the physical OS event time. Event order across workers
+is not comparable. Neither a target-closed error nor a missing Response is
+converted to success.
+
+Compared with cf758b0, this experiment changes instrumentation and native-library
+setup. The source/toolchain/browser pins, 26 scenarios, two workers, zero retries,
+timeouts, product assertions and global deadline remain fixed. Synthetic tests
+exercise real installed BrowserDispatcher registration and close behavior with
+synthetic process/transport fixtures; they launch no browser. The lifecycle
+hooks still require independent review and a native PR run for qualification.
+`diagnosticComplete` remains false while detached-process cleanup is unverified.

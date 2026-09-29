@@ -11,6 +11,34 @@ const PROJECTS = [
 	"chromium-csrf",
 	"unknown",
 ];
+const ERROR_CATEGORIES = [
+	"none",
+	"unknown-guid",
+	"missing-system-dependencies",
+	"missing-browser-executable",
+	"target-closed",
+	"other",
+];
+function classifyErrors(errors) {
+	const messages = errors
+		.slice(0, 16)
+		.map((error) =>
+			typeof error?.message === "string" && error.message.length <= 65536
+				? error.message
+				: "",
+		);
+	for (const [text, category] of [
+		["was not bound in the connection", "unknown-guid"],
+		[
+			"Host system is missing dependencies to run browsers",
+			"missing-system-dependencies",
+		],
+		["Executable doesn't exist", "missing-browser-executable"],
+		["Target page, context or browser has been closed", "target-closed"],
+	])
+		if (messages.some((message) => message.includes(text))) return category;
+	return errors.length ? "other" : "none";
+}
 const STATUSES = ["passed", "failed", "timedOut", "skipped", "interrupted"];
 function keys(value, expected) {
 	return (
@@ -31,7 +59,7 @@ function validateReport(value) {
 			"incomplete",
 			"tests",
 		]) &&
-		value.schemaVersion === "opaque-playwright-tests.v1" &&
+		value.schemaVersion === "opaque-playwright-tests.v2" &&
 		integer(value.expected) &&
 		value.expected <= 26 &&
 		[null, "passed", "failed", "timedout", "interrupted"].includes(
@@ -61,7 +89,7 @@ function validateReport(value) {
 				integer(row.durationMs) &&
 				row.durationMs <= 3600000 &&
 				row.retry === 0 &&
-				["none", "unknown-guid", "other"].includes(row.errorCategory),
+				ERROR_CATEGORIES.includes(row.errorCategory),
 		) &&
 		new Set(value.tests.map((row) => row.ordinal)).size === value.tests.length
 	);
@@ -71,7 +99,7 @@ class OpaqueReporter {
 		this.output = options.output || process.env.TOOLKIT_DIAG_OUTPUT;
 		this.ids = new Map();
 		this.value = {
-			schemaVersion: "opaque-playwright-tests.v1",
+			schemaVersion: "opaque-playwright-tests.v2",
 			expected: 0,
 			finalStatus: null,
 			incomplete: false,
@@ -114,14 +142,7 @@ class OpaqueReporter {
 		}
 		const project = test.parent.project()?.name;
 		const errors = Array.isArray(result.errors) ? result.errors : [];
-		const unknownGuid = errors
-			.slice(0, 16)
-			.some(
-				(error) =>
-					typeof error.message === "string" &&
-					error.message.length <= 65536 &&
-					error.message.includes("was not bound in the connection"),
-			);
+
 		this.value.tests.push({
 			ordinal,
 			workerIndex:
@@ -134,11 +155,7 @@ class OpaqueReporter {
 				? Math.max(0, Math.min(Math.round(result.duration), 3600000))
 				: 0,
 			retry: 0,
-			errorCategory: unknownGuid
-				? "unknown-guid"
-				: errors.length
-					? "other"
-					: "none",
+			errorCategory: classifyErrors(errors),
 		});
 		this.persist();
 	}
