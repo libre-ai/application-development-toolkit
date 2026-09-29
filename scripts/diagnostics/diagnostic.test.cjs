@@ -821,7 +821,7 @@ test("lifecycle projection shares protocol sequence and rejects free text at exp
 	recorder.lifecycle(null, "worker-signal-event", privateMarker, "SIGTERM");
 	recorder.lifecycle("browser", "process-close", privateMarker, privateMarker);
 	const value = recorder.snapshot();
-	assert.equal(value.schemaVersion, "opaque-playwright-order.v3");
+	assert.equal(value.schemaVersion, "opaque-playwright-order.v4");
 	assert.equal(api().validateJournal(value), true);
 	assert.equal(value.events[1].object, value.events[0].object);
 	assert.deepEqual(
@@ -1137,9 +1137,13 @@ test("installed BrowserDispatcher exposes its registered object before create de
 	const child = new EventEmitter();
 	child.exitCode = null;
 	child.signalCode = null;
+	child.stderr = new EventEmitter();
 	const browserProcess = {
 		process: child,
-		close: async () => browser.didClose(),
+		close: async () => {
+			browser.didClose();
+			child.stderr.emit("end");
+		},
 		kill: async () => {},
 	};
 	const browser = new core.server.Browser(impl.chromium, {
@@ -1242,4 +1246,340 @@ test("nonwritable hook methods cannot produce a falsely complete lifecycle journ
 			params: { type: "Browser", guid: "browser" },
 		});
 	assert.equal(recorder.snapshot().incomplete, true);
+});
+
+function stderrRecorder() {
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	assert.equal(typeof api().createStderrObserver, "function");
+	const parser = api().createStderrObserver({
+		record: (category, code) =>
+			recorder.stderrCategory("browser", category, code),
+		state: (state, bytes, lines, unknownLines) =>
+			recorder.stderrState("browser", state, bytes, lines, unknownLines),
+		incomplete: recorder.markIncomplete,
+	});
+	return { recorder, parser };
+}
+test("stderr catalogue projects closed categories without private text, source, PID or stack", () => {
+	const { recorder, parser } = stderrRecorder();
+	const lines = [
+		`[123:456:0929/070000.123456:FATAL:base/foo.cc:17] Check failed: ${privateMarker} https://private.invalid/ cookie=private\n`,
+		`# Check failed: ${privateMarker}\n`,
+		`assertion failed: ${privateMarker}\n`,
+		`# Fatal process out of memory: Allocation failed - process out of memory ${privateMarker}\n`,
+		`[123:456:0929/070000.123456:FATAL:content/browser/zygote_host/zygote_host_impl_linux.cc:101] No usable sandbox! ${privateMarker}\n`,
+		`[123:456:0929/070000.123456:ERROR:third_party/crashpad/crashpad/client/crashpad_client_linux.cc:201] ${privateMarker}\n`,
+		`[123:456:0929/070000.123456:INFO:CONSOLE:1] FATAL Check failed: No usable sandbox! ${privateMarker}\n`,
+	];
+	for (const line of lines) parser.write(Buffer.from(line));
+	parser.end();
+	const value = recorder.snapshot();
+	assert.equal(value.schemaVersion, "opaque-playwright-order.v4");
+	assert.equal(value.incomplete, false);
+	assert.equal(api().validateJournal(value), true);
+	const codes = value.events
+		.filter((row) => row.kind === "stderr-category")
+		.map((row) => row.code);
+	assert.deepEqual(codes, [
+		"chromium-fatal",
+		"chromium-check",
+		"v8-check",
+		"native-assertion",
+		"v8-process-allocation",
+		"chromium-fatal",
+		"sandbox-unusable",
+		"zygote-host-site",
+		"crashpad-client-site",
+	]);
+	for (const text of [
+		privateMarker,
+		"https://",
+		"cookie=",
+		"base/foo.cc",
+		"123:456",
+		"private.invalid",
+	])
+		assert.equal(JSON.stringify(value).includes(text), false);
+});
+test("stderr split chunks and trailing line preserve recognition without retaining raw content", () => {
+	const { recorder, parser } = stderrRecorder();
+	assert.equal(
+		recorder.snapshot().incomplete,
+		true,
+		"attached stream has not ended",
+	);
+	parser.write(Buffer.from("# Check fa"));
+	parser.write(
+		Buffer.from(
+			`iled: ${privateMarker}\r\n# Fatal JavaScript out of memory: Allocation failed - JavaScript heap out of memory`,
+		),
+	);
+	parser.end();
+	const value = recorder.snapshot();
+	assert.equal(value.incomplete, false);
+	assert.deepEqual(
+		value.events
+			.filter((row) => row.kind === "stderr-category")
+			.map((row) => row.code),
+		["v8-check", "v8-heap-allocation"],
+	);
+	assert.equal(value.events.at(-1).lines, 2);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
+});
+test("stderr byte, line, length and unsupported chunk budgets are sticky incomplete", () => {
+	for (const feed of [
+		(parser) => parser.write(Buffer.alloc(262145, 120)),
+		(parser) => parser.write(Buffer.from("x\n".repeat(257))),
+		(parser) => parser.write(Buffer.from(`${"x".repeat(4097)}\n`)),
+		(parser) => parser.write({ message: privateMarker }),
+		(parser) => parser.close(),
+	]) {
+		const { recorder, parser } = stderrRecorder();
+		feed(parser);
+		parser.end();
+		const value = recorder.snapshot();
+		assert.equal(value.incomplete, true);
+		assert.equal(api().validateJournal(value), true);
+		assert.equal(JSON.stringify(value).includes(privateMarker), false);
+		const last = value.events.at(-1);
+		assert.ok(last.bytes <= 262144);
+		assert.ok(last.lines <= 256);
+	}
+});
+test("stderr schema refuses private fields and mismatched category codes", () => {
+	const { recorder, parser } = stderrRecorder();
+	parser.write(Buffer.from("# Check failed: x\n"));
+	parser.end();
+	const original = recorder.snapshot();
+	for (const mutate of [
+		(row) => {
+			row.url = privateMarker;
+		},
+		(row) => {
+			row.code = privateMarker;
+		},
+		(row) => {
+			row.category = "sandbox";
+		},
+		(row) => {
+			row.object = null;
+		},
+		(row) => {
+			row.direction = "client-send";
+		},
+	]) {
+		const value = structuredClone(original);
+		mutate(value.events.find((row) => row.kind === "stderr-category"));
+		assert.equal(api().validateJournal(value), false);
+	}
+	const invalid = structuredClone(original);
+	invalid.events.at(-1).bytes = 262145;
+	assert.equal(api().validateJournal(invalid), false);
+});
+test("stderr observation faults never escape or make a pending stream complete", () => {
+	assert.equal(typeof api().createStderrObserver, "function");
+	let incomplete = false;
+	const parser = api().createStderrObserver({
+		record() {
+			throw new Error(privateMarker);
+		},
+		state() {},
+		incomplete() {
+			incomplete = true;
+		},
+	});
+	assert.doesNotThrow(() => {
+		parser.write(Buffer.from("# Check failed: x\n"));
+		parser.end();
+	});
+	assert.equal(incomplete, true);
+});
+test("Chromium stderr hooks preserve original Readable readline consumer and buffer identity", async () => {
+	const { PassThrough } = require("node:stream");
+	const readline = require("node:readline");
+	const f = lifecycleFixture();
+	f.child.stderr = new PassThrough();
+	const reader = readline.createInterface({ input: f.child.stderr });
+	const originalLines = [];
+	reader.on("line", (line) => originalLines.push(line));
+	const count = f.child.stderr.listenerCount("data");
+	const chunk = Buffer.from(
+		`# Check failed: ${privateMarker}\n${privateMarker}\n`,
+	);
+	let received;
+	f.child.stderr.on("data", (value) => {
+		received = value;
+	});
+	const listeners = f.child.stderr.listenerCount("data");
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	api()
+		.createLifecycleObserver(f.server, recorder, f.worker)
+		.observe({
+			method: "__create__",
+			params: {
+				type: "Browser",
+				guid: "browser",
+				initializer: { version: "149.0.7827.55" },
+			},
+		});
+	assert.ok(count > 0);
+	assert.equal(f.child.stderr.listenerCount("data"), listeners);
+	f.child.stderr.end(chunk);
+	await new Promise((resolve) => reader.once("close", resolve));
+	assert.equal(received, chunk);
+	assert.deepEqual(originalLines, [
+		`# Check failed: ${privateMarker}`,
+		privateMarker,
+	]);
+	const value = recorder.snapshot();
+	assert.equal(value.incomplete, false);
+	assert.equal(value.events.at(-1).unknownLines, 1);
+	assert.equal(api().validateJournal(value), true);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
+	assert.equal(
+		value.events.filter((row) => row.kind === "stderr-category").length,
+		1,
+	);
+});
+test("Chromium stderr wrapper preserves emitted return and thrown consumer identity", () => {
+	const f = lifecycleFixture();
+	const { EventEmitter } = require("node:events");
+	f.child.stderr = new EventEmitter();
+	const failure = new Error(privateMarker);
+	const chunk = Buffer.from("# Check failed: x\n");
+	f.child.stderr.on("data", (value) => {
+		assert.equal(value, chunk);
+		throw failure;
+	});
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	api()
+		.createLifecycleObserver(f.server, recorder, f.worker)
+		.observe({
+			method: "__create__",
+			params: {
+				type: "Browser",
+				guid: "browser",
+				initializer: { version: "149.0.7827.55" },
+			},
+		});
+	assert.throws(
+		() => f.child.stderr.emit("data", chunk),
+		(error) => error === failure,
+	);
+	assert.equal(f.child.stderr.emit("unrelated", privateMarker), false);
+	f.child.stderr.emit("end");
+	assert.equal(recorder.snapshot().incomplete, false);
+});
+test("streaming executable hash matches independent known digest and rejects wrong Chromium bytes", async () => {
+	const { hashFile, verifyChromiumExecutable } = runnerApi();
+	assert.equal(typeof hashFile, "function");
+	assert.equal(typeof verifyChromiumExecutable, "function");
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), "opaque-executable-"));
+	const file = path.join(root, "synthetic");
+	try {
+		fs.writeFileSync(file, "abc");
+		assert.equal(
+			await hashFile(file),
+			"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+		);
+		await assert.rejects(
+			verifyChromiumExecutable(file),
+			(error) => error.message === "unsupported-chromium-executable",
+		);
+	} finally {
+		fs.rmSync(root, { recursive: true });
+	}
+});
+
+test("stderr validation refuses undefined code and category instead of accepting a missing Map key", () => {
+	const { recorder, parser } = stderrRecorder();
+	parser.write(Buffer.from("# Check failed: x\n"));
+	parser.end();
+	const value = recorder.snapshot();
+	const row = value.events.find((item) => item.kind === "stderr-category");
+	row.code = undefined;
+	row.category = undefined;
+	assert.equal(api().validateJournal(value), false);
+});
+
+test("an attached stderr stream cannot be exported as complete before its end", () => {
+	const { recorder } = stderrRecorder();
+	const value = recorder.snapshot();
+	value.incomplete = false;
+	assert.equal(api().validateJournal(value), false);
+});
+
+test("real child stderr keeps existing consumer bytes and exit while exporting categories only", async () => {
+	const { spawn } = require("node:child_process");
+	const readline = require("node:readline");
+	const text = `# Check failed: ${privateMarker}\n`;
+	const child = spawn(
+		process.execPath,
+		["-e", `process.stderr.write(${JSON.stringify(text)});`],
+		{ stdio: ["ignore", "ignore", "pipe"], env: {} },
+	);
+	const received = [];
+	const reader = readline.createInterface({ input: child.stderr });
+	reader.on("line", (line) => received.push(line));
+	const f = lifecycleFixture();
+	f.processObject.process = child;
+	const recorder = api().createRecorder({
+		clock: () => 1,
+		present: () => true,
+	});
+	api()
+		.createLifecycleObserver(f.server, recorder, f.worker)
+		.observe({
+			method: "__create__",
+			params: {
+				type: "Browser",
+				guid: "browser",
+				initializer: { version: "149.0.7827.55" },
+			},
+		});
+	const result = await new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			child.kill("SIGKILL");
+			reject(new Error("synthetic stderr deadline"));
+		}, 2000);
+		child.once("error", (error) => {
+			clearTimeout(timer);
+			reject(error);
+		});
+		child.once("close", (code, signal) => {
+			clearTimeout(timer);
+			resolve({ code, signal });
+		});
+	});
+	assert.deepEqual(result, { code: 0, signal: null });
+	assert.deepEqual(received, [text.trimEnd()]);
+	const value = recorder.snapshot();
+	assert.equal(value.incomplete, false);
+	assert.equal(api().validateJournal(value), true);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
+	assert.deepEqual(
+		value.events
+			.filter((row) => row.kind === "stderr-category")
+			.map((row) => row.code),
+		["v8-check"],
+	);
+});
+
+test("unrecognized stderr lines remain explicitly counted without exporting content", () => {
+	const { recorder, parser } = stderrRecorder();
+	parser.write(Buffer.from(`${privateMarker}\n# Check failed: x\n`));
+	parser.end();
+	const value = recorder.snapshot();
+	assert.equal(value.events.at(-1).unknownLines, 1);
+	assert.equal(value.events.at(-1).lines, 2);
+	assert.equal(JSON.stringify(value).includes(privateMarker), false);
 });

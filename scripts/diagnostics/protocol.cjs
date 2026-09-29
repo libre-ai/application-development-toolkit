@@ -41,6 +41,163 @@ const LIFECYCLE = new Set([
 	"worker-signal-event",
 	"worker-exit-event",
 ]);
+const STDERR_BYTES = 262144;
+const STDERR_LINES = 256;
+const STDERR_LINE_BYTES = 4096;
+const STDERR_CODES = new Map([
+	["chromium-fatal", "fatal"],
+	["chromium-check", "check"],
+	["v8-check", "check"],
+	["native-assertion", "assertion"],
+	["v8-process-allocation", "oom"],
+	["v8-heap-allocation", "oom"],
+	["native-out-of-memory", "oom"],
+	["sandbox-unusable", "sandbox"],
+	["zygote-host-site", "zygote"],
+	["zygote-site", "zygote"],
+	["crashpad-client-site", "crashpad"],
+]);
+function classifyStderrLine(line) {
+	const codes = [];
+	// Header syntax comes from the pinned Chromium LogMessage::Init. Console
+	// messages and unstructured application text are not native log evidence.
+	const native =
+		/^\[[0-9:./]+:(INFO|WARNING|ERROR|FATAL):([A-Za-z0-9_./-]+):[0-9]+\] (.*)$/.exec(
+			line,
+		);
+	if (native && native[2] !== "CONSOLE") {
+		const [, severity, source, body] = native;
+		if (severity === "FATAL") codes.push("chromium-fatal");
+		if (body.startsWith("Check failed: ")) codes.push("chromium-check");
+		if (body.startsWith("No usable sandbox!")) codes.push("sandbox-unusable");
+		if (body.startsWith("Out of memory.")) codes.push("native-out-of-memory");
+		if (
+			source.endsWith("/zygote_host_impl_linux.cc") ||
+			source === "zygote_host_impl_linux.cc"
+		)
+			codes.push("zygote-host-site");
+		if (source.endsWith("/zygote_linux.cc") || source === "zygote_linux.cc")
+			codes.push("zygote-site");
+		if (
+			source.endsWith("/crashpad_client_linux.cc") ||
+			source === "crashpad_client_linux.cc"
+		)
+			codes.push("crashpad-client-site");
+	} else if (line.startsWith("# Check failed: ")) codes.push("v8-check");
+	else if (line.startsWith("assertion failed: "))
+		codes.push("native-assertion");
+	else if (/^# Fatal [A-Za-z]{1,24} out of memory: /.test(line)) {
+		if (line.includes("Allocation failed - process out of memory"))
+			codes.push("v8-process-allocation");
+		if (line.includes("Allocation failed - JavaScript heap out of memory"))
+			codes.push("v8-heap-allocation");
+	}
+	return codes;
+}
+function createStderrObserver({ record, state, incomplete }) {
+	let bytes = 0;
+	let lines = 0;
+	let unknownLines = 0;
+	let pending = "";
+	let overlong = false;
+	let stopped = false;
+	let ended = false;
+	function mark() {
+		try {
+			incomplete();
+		} catch {
+			/* Preserve the existing stream consumer. */
+		}
+	}
+	function emitState(name) {
+		try {
+			state(name, bytes, lines, unknownLines);
+		} catch {
+			mark();
+		}
+	}
+	function finishLine() {
+		if (lines === STDERR_LINES) {
+			mark();
+			stopped = true;
+			pending = "";
+			return;
+		}
+		lines++;
+		if (!overlong) {
+			const line = pending.endsWith("\r") ? pending.slice(0, -1) : pending;
+			const codes = classifyStderrLine(line);
+			if (codes.length === 0) unknownLines++;
+			for (const code of codes) {
+				try {
+					record(STDERR_CODES.get(code), code);
+				} catch {
+					mark();
+				}
+			}
+		}
+		pending = "";
+		overlong = false;
+	}
+	function write(chunk) {
+		if (ended) {
+			mark();
+			return;
+		}
+		if (stopped) return;
+		if (!Buffer.isBuffer(chunk) && typeof chunk !== "string") {
+			mark();
+			stopped = true;
+			pending = "";
+			return;
+		}
+		const remaining = STDERR_BYTES - bytes;
+		// Bound conversion before allocating. Node emits Buffer chunks here; strings
+		// are also supported without retaining their original representation.
+		const length = Buffer.isBuffer(chunk)
+			? chunk.length
+			: Buffer.byteLength(chunk);
+		const overflow = length > remaining;
+		const bounded = Buffer.isBuffer(chunk)
+			? chunk.subarray(0, remaining)
+			: Buffer.from(chunk.slice(0, remaining)).subarray(0, remaining);
+		const text = bounded.toString("latin1");
+		bytes += bounded.length;
+		let offset = 0;
+		while (offset < text.length && !stopped) {
+			const newline = text.indexOf("\n", offset);
+			const end = newline === -1 ? text.length : newline;
+			if (!overlong) {
+				if (pending.length + end - offset > STDERR_LINE_BYTES) {
+					mark();
+					overlong = true;
+					pending = "";
+				} else pending += text.slice(offset, end);
+			}
+			if (newline !== -1) finishLine();
+			offset = end + 1;
+		}
+		if (overflow) {
+			mark();
+			stopped = true;
+			pending = "";
+		}
+	}
+	function end() {
+		if (ended) return;
+		if (!stopped && (pending.length || overlong)) finishLine();
+		ended = true;
+		emitState("ended");
+	}
+	function close() {
+		if (!ended) {
+			mark();
+			end();
+		}
+	}
+	emitState("attached");
+	return { write, end, close };
+}
 function exitCategory(value) {
 	if (value === null || value === undefined) return "none";
 	if (!Number.isSafeInteger(value)) return "other";
@@ -68,6 +225,7 @@ function createRecorder({ clock, present, workerIndex = null }) {
 	const types = new Map();
 	const calls = new Map();
 	const events = [];
+	const pendingStderr = new Set();
 	let sequence = 0;
 	let dropped = 0;
 	let incomplete = false;
@@ -193,12 +351,64 @@ function createRecorder({ clock, present, workerIndex = null }) {
 			signal: signalCategory(signal),
 		});
 	}
+	function stderrCategory(guid, category, code) {
+		if (
+			!identity(guid) ||
+			!STDERR_CODES.has(code) ||
+			STDERR_CODES.get(code) !== category
+		) {
+			incomplete = true;
+			return;
+		}
+		const object = alias(guid);
+		if (object === null) return;
+		append({
+			direction: "server-stderr",
+			kind: "stderr-category",
+			object,
+			category,
+			code,
+		});
+	}
+	function stderrState(guid, state, bytes, lines, unknownLines = 0) {
+		if (
+			!identity(guid) ||
+			!["attached", "ended"].includes(state) ||
+			!integer(bytes) ||
+			bytes > STDERR_BYTES ||
+			!integer(lines) ||
+			lines > STDERR_LINES ||
+			!integer(unknownLines) ||
+			unknownLines > lines
+		) {
+			incomplete = true;
+			return;
+		}
+		const object = alias(guid);
+		if (object === null) return;
+		if (state === "attached") {
+			if (pendingStderr.has(object) || pendingStderr.size >= 64) {
+				incomplete = true;
+				return;
+			}
+			pendingStderr.add(object);
+		} else if (!pendingStderr.delete(object)) incomplete = true;
+		append({
+			direction: "server-stderr",
+			kind: "stderr-state",
+			object,
+			state,
+			bytes,
+			lines,
+			unknownLines,
+		});
+	}
 	function snapshot() {
 		return {
-			schemaVersion: "opaque-playwright-order.v3",
+			schemaVersion: "opaque-playwright-order.v4",
 			workerIndex:
 				integer(workerIndex) && workerIndex < 26 ? workerIndex : null,
-			incomplete,
+			incomplete: incomplete || pendingStderr.size > 0,
 			dropped,
 			events: events.map((event) => ({ ...event })),
 		};
@@ -206,7 +416,14 @@ function createRecorder({ clock, present, workerIndex = null }) {
 	function markIncomplete() {
 		incomplete = true;
 	}
-	return { observe, lifecycle, snapshot, markIncomplete };
+	return {
+		observe,
+		lifecycle,
+		stderrCategory,
+		stderrState,
+		snapshot,
+		markIncomplete,
+	};
 }
 function validateJournal(value) {
 	if (
@@ -217,7 +434,7 @@ function validateJournal(value) {
 			"dropped",
 			"events",
 		]) ||
-		value.schemaVersion !== "opaque-playwright-order.v3" ||
+		value.schemaVersion !== "opaque-playwright-order.v4" ||
 		(value.workerIndex !== null &&
 			(!integer(value.workerIndex) || value.workerIndex >= 26)) ||
 		typeof value.incomplete !== "boolean" ||
@@ -227,6 +444,7 @@ function validateJournal(value) {
 	)
 		return false;
 	let previous = 0;
+	const stderrPending = new Set();
 	for (const row of value.events) {
 		const common = ["sequence", "elapsedMs", "direction", "kind", "object"];
 		const fields = {
@@ -235,6 +453,8 @@ function validateJournal(value) {
 			close: ["type", "reason"],
 			"goto-request": ["rpc"],
 			lifecycle: ["category", "exitCategory", "signal"],
+			"stderr-category": ["category", "code"],
+			"stderr-state": ["state", "bytes", "lines", "unknownLines"],
 			"goto-result": ["rpc", "response", "hasError", "responsePresent"],
 		}[row?.kind];
 		if (
@@ -244,12 +464,49 @@ function validateJournal(value) {
 			row.sequence <= previous ||
 			!integer(row.elapsedMs) ||
 			row.elapsedMs > 3600000 ||
-			(row.kind !== "lifecycle" && !DIRECTIONS.has(row.direction)) ||
+			(!["lifecycle", "stderr-category", "stderr-state"].includes(row.kind) &&
+				!DIRECTIONS.has(row.direction)) ||
 			((row.kind !== "lifecycle" || row.object !== null) &&
 				(!integer(row.object) || row.object === 0 || row.object > 8192))
 		)
 			return false;
 		previous = row.sequence;
+		if (
+			["stderr-category", "stderr-state"].includes(row.kind) &&
+			row.direction !== "server-stderr"
+		)
+			return false;
+		if (
+			row.kind === "stderr-category" &&
+			(!STDERR_CODES.has(row.code) ||
+				STDERR_CODES.get(row.code) !== row.category)
+		)
+			return false;
+		if (
+			row.kind === "stderr-state" &&
+			(!["attached", "ended"].includes(row.state) ||
+				!integer(row.bytes) ||
+				row.bytes > STDERR_BYTES ||
+				!integer(row.lines) ||
+				row.lines > STDERR_LINES ||
+				!integer(row.unknownLines) ||
+				row.unknownLines > row.lines)
+		)
+			return false;
+		if (row.kind === "stderr-state") {
+			if (row.state === "attached") {
+				if (row.bytes !== 0 || row.lines !== 0 || stderrPending.has(row.object))
+					return false;
+				stderrPending.add(row.object);
+			} else if (!stderrPending.delete(row.object) && !value.incomplete)
+				return false;
+		}
+		if (
+			row.kind === "stderr-category" &&
+			!stderrPending.has(row.object) &&
+			!value.incomplete
+		)
+			return false;
 		if (row.kind === "lifecycle") {
 			const worker =
 				row.category === "worker-signal-event" ||
@@ -286,7 +543,7 @@ function validateJournal(value) {
 		)
 			return false;
 	}
-	return true;
+	return stderrPending.size === 0 || value.incomplete;
 }
 function createLifecycleObserver(server, recorder, worker) {
 	const observed = new WeakSet();
@@ -372,6 +629,20 @@ function createLifecycleObserver(server, recorder, worker) {
 			if (!callback || typeof callback.value !== "function") incomplete();
 			else wrap(transport, "_onclose", () => record(guid, "transport-close"));
 			const child = browserProcess?.process;
+			if (message.params.initializer?.version === "149.0.7827.55") {
+				const stderr = createStderrObserver({
+					record: (category, code) =>
+						recorder.stderrCategory(guid, category, code),
+					state: (state, bytes, lines, unknownLines) =>
+						recorder.stderrState(guid, state, bytes, lines, unknownLines),
+					incomplete,
+				});
+				wrap(child?.stderr, "emit", (args) => {
+					if (args[0] === "data") stderr.write(args[1]);
+					if (args[0] === "end") stderr.end();
+					if (args[0] === "close") stderr.close();
+				});
+			}
 			wrap(child, "emit", (args) => {
 				if (args[0] === "exit") record(guid, "process-exit", args[1], args[2]);
 				if (args[0] === "close")
@@ -506,6 +777,7 @@ function install() {
 module.exports = {
 	createRecorder,
 	createLifecycleObserver,
+	createStderrObserver,
 	validateJournal,
 	attach,
 	resolveCore,

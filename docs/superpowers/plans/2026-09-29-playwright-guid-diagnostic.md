@@ -117,3 +117,65 @@ The initial root invocation lacked package-level dependency links; bare bun test
 also ran Node-only diagnostics under the wrong runtime without their workspace
 configuration. Both preparation/command errors are retained in external evidence,
 not described as predefined failures. The corrected declared commands pass.
+
+## Stderr successor plan — 2026-09-29
+
+Base: f1d575593310b8eb4b2c6e110481e735b0f88b1f in a separate clean checkout.
+Native run36534891880 showed pipe close, disconnection, process SIGTRAP and
+recursive Response disposal for the GUID, plus another target-closed SIGTRAP.
+No earlier internal close or worker signal was observed. Browser stderr was not
+retained, so CHECK/FATAL, allocation, sandbox, zygote and crashpad hypotheses
+cannot yet be separated. This is an observation change, not a product fix.
+
+The verified Playwright bundle reads ChildProcess.stderr using readline. Wrap
+that stream's existing emit method and inspect only data/end/close before exact
+delegation. Do not add consumers, read/resume/pause/setEncoding, mutate buffers,
+remove listeners or change errors/returns. Chromium149.0.7827.55 only; earlier
+startup bytes before Browser create remain unobserved. No raw text or its hash,
+file path, arguments, PID, URL, stack or application data reaches an artifact.
+
+A finite catalogue uses the exact Chromium149.0.7827.55 logging/check sources and
+statically inspected official Linux archive. Binary chrome SHA256:
+2d18db9d8608b052b6a552ee00ec1e830f93692e928b65ecc67d693bd33fe801.
+Verify that installed executable in preflight and once after the experiment; use
+streaming hashing, not per-event hashing. The catalogue records literal markers,
+not arbitrary errno/addresses or unchecked CHECK expressions. Native structured
+headers may yield fatal/check and source-family zygote/crashpad categories;
+anchored known assertion/allocation/sandbox messages yield fixed codes. Unknown
+text is discarded, and a category describes text observed, not its causal truth.
+
+Budgets per Browser:256KiB of inspected bytes,256 completed lines,4096 bytes per
+line. Split chunks are reassembled only inside this line bound. Byte/line/length
+or unsupported-input overflow sets sticky incomplete; no unbounded tail buffer.
+Keep a fixed attached/ended state and bounded bytes/lines/unknownLines counters so zero matching text is
+not confused with an absent hook. Journal advances to v4 with strict enum-only
+stderr records; existing event/alias/file caps remain unchanged.
+
+- [x] RED: private sentinel/URL/path/PID/stack projection, chunk splits, exact
+  category catalogue, irrelevant console text, byte/line bounds, unterminated
+  final line, strict schema rejection, observation fault and stream delegation.
+- [x] Implement only diagnostic scripts/tests/docs, keeping worker/test/timeouts,
+  source/toolchain/browser pins, system dependency recipe and gates unchanged.
+- [x] Verify real Readable/readline consumer behavior and child stderr using
+  synthetic bounded processes, with unchanged original buffer and exceptions.
+- [x] Check streaming executable digest success/rejection, installed synthetic
+  SDK, diagnostic coverage80/80/80, root, declared units, Python, Biome and REUSE.
+- [ ] Freeze DCO candidate and obtain independent review before any push/run.
+
+The categories distinguish observed families, not an exact Chromium assertion
+or crash mechanism. Missing categories cannot rule out omitted startup text,
+unknown formats or a signal with no message. If the evidence remains ambiguous,
+report that gap rather than building a general stderr collector. Synchronous
+classification perturbs timing; diagnosticComplete remains false and detached
+cleanup remains unverified. No raw browser log is published.
+
+Local verification: 45 diagnostic tests pass with aggregate coverage 84.97%
+lines, 86.14% branches and 92.13% functions against the existing 80/80/80 gate.
+Root check, 105 declared Bun tests, 16 Python tests, Biome and REUSE pass with
+Node 26.5.0 and Bun 1.4.0-canary.1+57f349f63. Existing frozen dependency entries
+were linked read-only; this was not a fresh install. The final stream integration
+test first found a dropped unknownLines callback argument and then passed after
+the forwarding correction. A verification command omitted the required workspace
+environment variable; that command error is preserved separately from the
+corrected green recipe. No Linux browser or product E2E run occurred in this
+preparation. Native qualification remains pending independent review/publication.

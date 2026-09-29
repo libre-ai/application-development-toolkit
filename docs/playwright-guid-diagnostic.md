@@ -48,7 +48,7 @@ The normal failure summarizer still uses its default output directory.
 `events-N.json` contains only a fixed schema: per-process worker index, event
 sequence and relative time, closed direction/kind/type/browser enums, integer
 object aliases, parent aliases, numeric protocol RPC IDs, boolean response
-presence, and error presence. The lifecycle journal uses schema v3; its additional
+presence, and error presence. The lifecycle journal uses schema v4; its additional
 closed categories record internal close/kill, transport close, browser disconnect,
 child-process exit/close, and worker signal/exit events. Process values are reduced
 to zero/nonzero/none/other and a fixed signal enum. Browser events use the same
@@ -180,3 +180,69 @@ exercise real installed BrowserDispatcher registration and close behavior with
 synthetic process/transport fixtures; they launch no browser. The lifecycle
 hooks still require independent review and a native PR run for qualification.
 `diagnosticComplete` remains false while detached-process cleanup is unverified.
+
+## Bounded Chromium stderr successor
+
+Run36534891880 at f1d5755 observed two Chromium process exits with SIGTRAP after
+pipe close, including one missing Response GUID. No internal close or worker
+signal preceded those closures. The existing evidence does not identify why the
+process trapped: raw child output was discarded. This successor observes only
+closed stderr categories to distinguish possible families; it is not a GUID fix.
+
+The observer wraps the existing Chromium ChildProcess.stderr.emit method. It
+adds no consumer/listener and never calls read, resume, pause or setEncoding.
+Data chunks reach the original readline consumer with their exact identity;
+return values, receiver, arguments and thrown consumer errors remain unchanged.
+Only Chromium version149.0.7827.55 is in scope. Firefox/WebKit lifecycle remains
+observed but their stderr is not classified. Bytes emitted before Browser
+attachment are outside the observation window and cannot be reconstructed.
+
+The catalogue has seven families and eleven fixed codes:
+
+| Family | Accepted code or source marker |
+| --- | --- |
+| fatal | `chromium-fatal`: FATAL severity in a structured Chromium header |
+| check | `chromium-check`, `v8-check`: anchored known CHECK prefix |
+| assertion | `native-assertion`: anchored assertion prefix present in the binary |
+| oom | `v8-process-allocation`, `v8-heap-allocation`, `native-out-of-memory`: fixed allocation messages |
+| sandbox | `sandbox-unusable`: known sandbox refusal literal |
+| zygote | `zygote-host-site`, `zygote-site`: fixed native log source families |
+| crashpad | `crashpad-client-site`: fixed native client log source family |
+
+The parser never exports a header, source path, expression, message, PID, URL,
+stack, argument, arbitrary errno, raw-data hash or matched substring. Console
+lines are not accepted as native headers. Unknown text is discarded and counted
+in `unknownLines`, not silently treated as a recognized cause. Log-site categories
+say which family emitted text; they do not mean that family caused the failure.
+The catalogue is intentionally finite, not a taxonomy of Chromium failures.
+
+Formats are justified by the pinned Chromium
+[logging source](https://github.com/chromium/chromium/blob/149.0.7827.55/base/logging.cc)
+and [CHECK source](https://github.com/chromium/chromium/blob/149.0.7827.55/base/check.cc),
+plus static marker inspection of the exact Linux Chrome archive selected by
+Playwright. The Chromium executable SHA256 must be
+`2d18db9d8608b052b6a552ee00ec1e830f93692e928b65ecc67d693bd33fe801`.
+The supervisor verifies it with streaming reads before the experiment and again
+when checking unchanged inputs afterwards. No binary hashing runs inside an
+event hook. Receipt schema v2 includes `chromiumExecutableSha256`; no new binary,
+version, browser flag, source pin or system-library recipe is introduced.
+
+Per Browser bounds:256KiB inspected bytes,256 completed lines,4096 bytes per
+line. Chunk boundaries are reassembled only within that line limit. Overlong
+lines, byte/line saturation, unsupported chunk types, stream close before end,
+missing/nonwritable hooks and observation faults set sticky incomplete. A prefix
+cut by the byte bound is not classified as a complete line. The stderr-state
+events record attached/ended and bounded bytes/lines/unknownLines counters. A
+pending stream makes snapshots incomplete; validation rejects a complete journal
+with a pending stderr stream. Existing4096-event,64-hook,8192-alias and1MiB file
+bounds remain active. All new fields use exact keys, integer bounds and enum pairs.
+
+Synthetic tests verify projection, split chunks, overflow, unknown categories,
+strict export, actual Readable/readline and real synthetic ChildProcess stderr
+without changing consumer bytes or exit behavior. The exact Linux binary was
+read and hashed statically on macOS; it was not executed. The new parser/hooks
+still need independent review and the native PR experiment for qualification.
+Text classification adds synchronous work and can perturb timing. A missing
+known marker cannot exclude unknown formats, omitted startup bytes or a signal
+with no stderr text. No category alone establishes a crash or a specific CHECK.
+`diagnosticComplete=false` and detached-cleanup limitations are unchanged.

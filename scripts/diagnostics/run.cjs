@@ -14,6 +14,19 @@ const PINS = {
 	"organization-data-lifecycle": "e8050a7202bd827a2dc73999192f791647b1cdc3",
 	"ai-model-policy": "6521c4a94c6477bd82c99ad9f2ee6a3e97385223",
 };
+const CHROMIUM_EXECUTABLE_SHA =
+	"2d18db9d8608b052b6a552ee00ec1e830f93692e928b65ecc67d693bd33fe801";
+async function hashFile(file) {
+	const hash = crypto.createHash("sha256");
+	for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+	return hash.digest("hex");
+}
+async function verifyChromiumExecutable(file) {
+	const digest = await hashFile(file);
+	if (digest !== CHROMIUM_EXECUTABLE_SHA)
+		throw new Error("unsupported-chromium-executable");
+	return digest;
+}
 function childEnvironment(source) {
 	const result = { CI: "true", LANG: "C.UTF-8", TZ: "UTC" };
 	for (const key of ["PATH", "HOME", "TMPDIR", "PLAYWRIGHT_BROWSERS_PATH"])
@@ -189,7 +202,11 @@ async function main() {
 		throw new Error("unsupported-bun");
 	const product = path.join(root, "application-development-toolkit");
 	const workspace = path.join(product, "packages/starter/starter");
-	const { bundle } = resolveCore(workspace);
+	const { bundle, core } = resolveCore(workspace);
+	const chromiumExecutable =
+		core.inprocess.playwright.chromium.executablePath();
+	const chromiumExecutableSha256 =
+		await verifyChromiumExecutable(chromiumExecutable);
 	const diagnosticSha = capture(
 		"git",
 		["rev-parse", "HEAD"],
@@ -233,7 +250,8 @@ async function main() {
 			crypto
 				.createHash("sha256")
 				.update(fs.readFileSync(bundle))
-				.digest("hex") === BUNDLE_SHA;
+				.digest("hex") === BUNDLE_SHA &&
+			(await hashFile(chromiumExecutable)) === chromiumExecutableSha256;
 	} catch {
 		/* Report the failed invariant categorically. */
 	}
@@ -245,11 +263,12 @@ async function main() {
 	const hash = (file) =>
 		crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 	const receipt = {
-		schemaVersion: "opaque-playwright-run.v1",
+		schemaVersion: "opaque-playwright-run.v2",
 		sourcePins: PINS,
 		diagnosticSha,
 		toolingSha: "8a27b8f5bf774fad04b8478fa9179eefdba0eaf7",
 		bundleSha256: BUNDLE_SHA,
+		chromiumExecutableSha256,
 		recipeSha256: hash(__filename),
 		observerSha256: hash(path.join(__dirname, "protocol.cjs")),
 		reporterSha256: hash(path.join(__dirname, "reporter.cjs")),
@@ -293,6 +312,8 @@ async function main() {
 			: (result.exitCode ?? 1);
 }
 module.exports = {
+	hashFile,
+	verifyChromiumExecutable,
 	runBounded,
 	childEnvironment,
 	exportEvidence,
