@@ -1,7 +1,7 @@
 # Playwright validation patch
 
-The workspace pins Playwright Core 1.61.1. Bun applies
-`patches/playwright-core@1.61.1.patch` during installation; use the committed lockfile.
+The workspace pins Playwright Core 1.62.1. Bun applies
+`patches/playwright-core@1.62.1.patch` during installation; use the committed lockfile.
 
 `bun run check:playwright` checks the installed starter dependency with four
 synthetic protocol cases. The workspace `check` command includes this gate.
@@ -10,15 +10,46 @@ It requires the repository-pinned Node 26.5.0. Browser E2E remain separate.
 The patch rejects the pending RPC promise when result validation throws.
 Upstream removes that callback before validation, leaving the promise unsettled
 and throwing outside it. Invalid results remain errors. Event validation is unchanged.
+Upstream 1.62.1 still ships the unpatched code: its `lib/coreBundle.js` deletes the
+callback and then calls the result validator outside any `try` (line 63499), so the
+patch is carried forward, re-derived for the 1.62.1 line offsets.
 
 The patch modifies the distributed `lib/coreBundle.js` from the Apache-2.0
 Playwright package. Its attribution is retained in the adjacent `.license` file.
 The original bundle SHA-256 is
-`6be5c2ea035554e9b184b1dbc7aa5e7f1fb428dd1b5c202022858dcfae9bee27`;
+`9393fa79e1c67c74edc26b610d65a4f7ed73d345a762465cc88340a33a2454ac`;
 the patched bundle SHA-256 is
-`38511c1916e1950b9f70b4292d94863e8cc923244a5976bc042507f0cf124540`.
+`72a5af51a1e77ee468a07b3094f2642f507052a332c574f91e981909d9f0cea8`.
 
 This is a validation candidate. Synthetic protocol regression tests and local
 browser tests do not establish the cause of every CI failure. Keep the patch only
 with passing required CI; reassess it when upgrading Playwright and remove it when
 an upstream version passes the same regression tests without it.
+
+## Why Playwright 1.62.1 and not 1.61.1
+
+Playwright 1.61.1 installs Chrome for Testing 149.0.7827.55 (Chromium revision
+1228, headless shell revision 1228 as well). On the hosted `ubuntu-24.04` runner
+that browser process intermittently dies on `SIGTRAP` during the
+`packages/starter/starter` suite (projects `chromium` and `chromium-csrf`). The
+client then reports `Object with guid response@... was not bound in the
+connection`: the Response object is disposed together with the dead browser, so
+the guid error is a consequence of the crash, not a protocol-ordering defect.
+
+Measured on 2026-10-08 in CI probes:
+
+| Playwright runner | Chromium build | Suite runs failing |
+| --- | --- | --- |
+| 1.61.1 | revision 1228 | 30 of 42 (54 `SIGTRAP`, 54 failed tests) |
+| 1.62.1 and 1.63.0 | revisions 1234 and 1243 | 0 of 18 (both versions together) |
+| 1.61.1 | revision 1234 | 0 of 6 |
+
+The Chromium build decides the outcome, not the Playwright runner, and no launch
+flag removed the crash on revision 1228. Before this change the required check
+`composition / validate` failed on 7 of 11 runs of the unchanged base commit.
+
+The sibling `ai-work-supervision` package `@libre-ai/auth-web` still declares
+`@playwright/test` 1.61.1 as a development dependency, so the lockfile records a
+nested, unpatched 1.61.1 copy under it. Nothing in this workspace resolves that
+copy: the `playwright` binary, the browser install and the starter suites all
+resolve the hoisted, patched 1.62.1.
