@@ -1,6 +1,6 @@
 --- a/lib/coreBundle.js
 +++ b/lib/coreBundle.js
-@@ -62222,8 +62222,12 @@
+@@ -63496,8 +63496,12 @@
                parsedError.details = detailsValidator(errorDetails ?? {}, "", this._validatorFromWireContext());
              callback.reject(parsedError);
            } else {
