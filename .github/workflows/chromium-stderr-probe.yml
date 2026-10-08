@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: 2026 Libre AI contributors
+# SPDX-License-Identifier: EUPL-1.2
+# TEMPORARY measurement workflow, removed before merge. Captures raw Chromium stderr
+# (DEBUG=pw:browser) over repeated runs of the starter suite on the CI runner.
+name: Chromium stderr probe (temporary)
+'on':
+  pull_request:
+    paths:
+      - '.github/workflows/chromium-stderr-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.event.pull_request.head.ref == 'work/documents-75-adt-fix'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: diagnostic
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout composition tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: libre-ai/project-governance
+          ref: 2024a4884b314df99be457618be9c3b48a0287f7
+          path: tooling
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Prepare sources
+        shell: bash
+        run: |
+          python3 -B tooling/.github/composition/run-composition.py \
+            --target application-development-toolkit \
+            --revision "${{ github.event.pull_request.head.sha }}" \
+            --root "$GITHUB_WORKSPACE/composition" --phase prepare
+      - name: Install Bun and Node
+        shell: bash
+        run: |
+          bash tooling/.github/composition/install-toolchains.sh \
+            "$GITHUB_WORKSPACE/composition/project-governance/toolchains/bun.json" \
+            "$GITHUB_WORKSPACE/composition/project-governance/toolchains/notebook-qualification.json"
+      - run: pipx install reuse==6.2.0
+      - name: Install frozen composition
+        shell: bash
+        run: |
+          python3 -B tooling/.github/composition/run-composition.py \
+            --target application-development-toolkit \
+            --revision "${{ github.event.pull_request.head.sha }}" \
+            --root "$GITHUB_WORKSPACE/composition" --phase check
+      - name: Install browsers
+        working-directory: composition/application-development-toolkit/packages/ui
+        run: bun x --no-install playwright install --with-deps chromium firefox webkit
+      - name: Runner facts
+        shell: bash
+        run: |
+          uname -a; cat /etc/os-release | head -3; nproc; free -m; df -h /dev/shm /tmp | cat
+          ulimit -a | head -20
+          sysctl kernel.apparmor_restrict_unprivileged_userns kernel.unprivileged_userns_clone user.max_user_namespaces 2>&1 || true
+          node -v; bun -v
+      - name: Build
+        working-directory: composition/application-development-toolkit
+        run: bun run build
+      - name: Run starter chromium projects 4 times with raw browser logs
+        working-directory: composition/application-development-toolkit/packages/starter/starter
+        shell: bash
+        env:
+          DEBUG: pw:browser
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/probe"
+          for i in 1 2 3 4; do
+            bun x --no-install playwright test --reporter=line --workers=2 \
+              --project=chromium --project=chromium-csrf --project=chromium-pwa --project=chromium-no-js \
+              > "$GITHUB_WORKSPACE/probe/run-$i.log" 2>&1 || echo "run $i exit $?"
+            grep -cE "not bound in the connection" "$GITHUB_WORKSPACE/probe/run-$i.log" || true
+          done
+      - name: Upload raw logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: chromium-stderr-probe
+          path: probe/*.log
+          retention-days: 3
