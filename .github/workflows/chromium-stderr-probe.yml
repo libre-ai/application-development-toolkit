@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [blank-1.61.1, app-1.61.1, app-1.61.1-serial]
+        variant: [loop-app-1.61.1, suite-1.61.1, suite-1.63.0, suite-1.62.1]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -69,14 +69,15 @@ jobs:
         working-directory: composition/application-development-toolkit
         run: bun run build
       - name: Minimal launch loop (no test runner)
+        if: startsWith(matrix.variant, 'loop')
         working-directory: composition/application-development-toolkit/packages/starter/starter
         shell: bash
         env:
           VARIANT: ${{ matrix.variant }}
         run: |
           mkdir -p "$GITHUB_WORKSPACE/probe"
-          PWVER="${VARIANT#*-}"; PWVER="${PWVER%%-*}"
-          TARGET="${VARIANT%%-*}"
+          PWVER=1.61.1
+          TARGET=app
           if [ "$PWVER" = "1.63.0" ]; then
             mkdir -p /tmp/pw163 && (cd /tmp/pw163 && npm init -y >/dev/null && npm i playwright-core@1.63.0 >/dev/null && node node_modules/playwright-core/cli.js install --with-deps chromium)
             export PW_MODULE=/tmp/pw163/node_modules/playwright-core/index.mjs
@@ -125,6 +126,36 @@ jobs:
           for r in 1 2 3; do
             DEBUG=pw:browser node "$GITHUB_WORKSPACE/probe-launch.mjs" > "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log" 2>&1 || echo "round $r exit $?"
             echo "round $r: $(grep -c 'signal=SIGTRAP' "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log") SIGTRAP; $(tail -1 "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log" | cut -c1-200)"
+          done
+      - name: Starter suite with the selected Playwright version
+        if: startsWith(matrix.variant, 'suite')
+        working-directory: composition/application-development-toolkit/packages/starter/starter
+        shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
+          DEBUG: pw:browser
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/probe"
+          VER="${VARIANT#suite-}"
+          if [ "$VER" = "1.61.1" ]; then
+            RUNDIR="$PWD"
+            RUN="bun x --no-install playwright test"
+          else
+            export STARTER_DIR="$PWD"
+            RUNDIR=/tmp/pwsuite
+            mkdir -p "$RUNDIR" && cp -R e2e "$RUNDIR/e2e" && cp playwright.config.ts "$RUNDIR/playwright.config.ts"
+            sed -i 's|command: "bun run build && bun src/server/index.ts",|command: "bun src/server/index.ts", cwd: process.env.STARTER_DIR,|' "$RUNDIR/playwright.config.ts"
+            grep -n "STARTER_DIR" "$RUNDIR/playwright.config.ts"
+            (cd "$RUNDIR" && npm init -y >/dev/null && npm i @playwright/test@$VER >/dev/null && node node_modules/@playwright/test/cli.js install --with-deps chromium)
+            RUN="node node_modules/@playwright/test/cli.js test"
+          fi
+          cd "$RUNDIR"
+          for i in 1 2 3 4 5 6; do
+            $RUN --reporter=line --project=chromium --project=chromium-csrf --project=chromium-pwa --project=chromium-no-js \
+              > "$GITHUB_WORKSPACE/probe/$VARIANT-run-$i.log" 2>&1 || echo "run $i exit $?"
+          done
+          for f in "$GITHUB_WORKSPACE"/probe/*.log; do
+            echo "$(basename "$f") launched=$(grep -c '<launched>' "$f") sigtrap=$(grep -c 'signal=SIGTRAP' "$f") guid=$(grep -c 'not bound in the connection' "$f")"
           done
       - name: Upload raw logs
         if: always()
