@@ -12,6 +12,10 @@ permissions:
 jobs:
   probe:
     if: github.event.pull_request.head.ref == 'work/documents-75-adt-fix'
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, headless-shell, no-gpu, one-worker, no-sandbox-flags]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -64,23 +68,42 @@ jobs:
       - name: Build
         working-directory: composition/application-development-toolkit
         run: bun run build
-      - name: Run starter chromium projects 4 times with raw browser logs
+      - name: Run starter chromium projects 6 times per variant with raw browser logs
         working-directory: composition/application-development-toolkit/packages/starter/starter
         shell: bash
         env:
           DEBUG: pw:browser
+          VARIANT: ${{ matrix.variant }}
         run: |
           mkdir -p "$GITHUB_WORKSPACE/probe"
-          for i in 1 2 3 4; do
-            bun x --no-install playwright test --reporter=line --workers=2 \
-              --project=chromium --project=chromium-csrf --project=chromium-pwa --project=chromium-no-js \
-              > "$GITHUB_WORKSPACE/probe/run-$i.log" 2>&1 || echo "run $i exit $?"
-            grep -cE "not bound in the connection" "$GITHUB_WORKSPACE/probe/run-$i.log" || true
+          cat > playwright.probe.config.ts <<'CFG'
+          import base from "./playwright.config";
+          const variant = process.env.VARIANT ?? "baseline";
+          const args: string[] = [];
+          if (variant === "no-gpu") args.push("--disable-gpu");
+          if (variant === "no-sandbox-flags") args.push("--disable-dev-shm-usage", "--disable-features=UPowerBatteryStatus,DBus");
+          export default {
+            ...base,
+            workers: variant === "one-worker" ? 1 : 2,
+            projects: (base.projects ?? []).filter((p) => /^chromium/.test(p.name ?? "")).map((p) => {
+              const use = { ...(p.use ?? {}), launchOptions: { args } } as Record<string, unknown>;
+              if (variant === "headless-shell") delete use.channel;
+              return { ...p, use };
+            }),
+          };
+          CFG
+          sed -i 's/^          //' playwright.probe.config.ts
+          for i in 1 2 3 4 5 6; do
+            bun x --no-install playwright test -c playwright.probe.config.ts --reporter=line \
+              > "$GITHUB_WORKSPACE/probe/$VARIANT-run-$i.log" 2>&1 || echo "run $i exit $?"
+          done
+          for f in "$GITHUB_WORKSPACE"/probe/*.log; do
+            echo "$(basename "$f") launched=$(grep -c '<launched>' "$f") sigtrap=$(grep -c 'signal=SIGTRAP' "$f") guid=$(grep -c 'not bound in the connection' "$f") headlessshell=$(grep -c 'headless_shell' "$f")"
           done
       - name: Upload raw logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: chromium-stderr-probe
+          name: chromium-stderr-probe-${{ matrix.variant }}
           path: probe/*.log
           retention-days: 3
