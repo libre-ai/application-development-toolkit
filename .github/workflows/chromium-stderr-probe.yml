@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [blank-1.61.1, app-1.61.1, blank-1.63.0, app-1.63.0, app-1.61.1-serial]
+        variant: [blank-1.61.1, app-1.61.1, app-1.61.1-serial]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -81,8 +81,9 @@ jobs:
             mkdir -p /tmp/pw163 && (cd /tmp/pw163 && npm init -y >/dev/null && npm i playwright-core@1.63.0 >/dev/null && node node_modules/playwright-core/cli.js install --with-deps chromium)
             export PW_MODULE=/tmp/pw163/node_modules/playwright-core/index.mjs
           else
-            export PW_MODULE="$PWD/node_modules/playwright-core/index.mjs"
-            [ -f "$PW_MODULE" ] || export PW_MODULE="$(cd "$GITHUB_WORKSPACE/composition/application-development-toolkit" && node -e 'console.log(require.resolve("playwright-core/index.mjs"))')"
+            PWDIR="$(find "$GITHUB_WORKSPACE/composition" -type d -path '*/node_modules/playwright-core' -not -path '*/node_modules/*/node_modules/*' | head -1)"
+            export PW_MODULE="$PWDIR/index.mjs"
+            echo "playwright-core: $(node -p "require('$PWDIR/package.json').version")"
           fi
           echo "module: $PW_MODULE"
           if [ "$TARGET" = "app" ]; then
