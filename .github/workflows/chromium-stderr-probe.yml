@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [baseline, headless-shell, no-gpu, one-worker, no-sandbox-flags]
+        variant: [blank-1.61.1, app-1.61.1, blank-1.63.0, app-1.63.0, app-1.61.1-serial]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -68,37 +68,62 @@ jobs:
       - name: Build
         working-directory: composition/application-development-toolkit
         run: bun run build
-      - name: Run starter chromium projects 6 times per variant with raw browser logs
+      - name: Minimal launch loop (no test runner)
         working-directory: composition/application-development-toolkit/packages/starter/starter
         shell: bash
         env:
-          DEBUG: pw:browser
           VARIANT: ${{ matrix.variant }}
         run: |
           mkdir -p "$GITHUB_WORKSPACE/probe"
-          cat > playwright.probe.config.ts <<'CFG'
-          import base from "./playwright.config";
-          const variant = process.env.VARIANT ?? "baseline";
-          const args: string[] = [];
-          if (variant === "no-gpu") args.push("--disable-gpu");
-          if (variant === "no-sandbox-flags") args.push("--disable-dev-shm-usage", "--disable-features=UPowerBatteryStatus,DBus");
-          export default {
-            ...base,
-            workers: variant === "one-worker" ? 1 : 2,
-            projects: (base.projects ?? []).filter((p) => /^chromium/.test(p.name ?? "")).map((p) => {
-              const use = { ...(p.use ?? {}), launchOptions: { args } } as Record<string, unknown>;
-              if (variant === "headless-shell") delete use.channel;
-              return { ...p, use };
-            }),
-          };
-          CFG
-          sed -i 's/^          //' playwright.probe.config.ts
-          for i in 1 2 3 4 5 6; do
-            bun x --no-install playwright test -c playwright.probe.config.ts --reporter=line \
-              > "$GITHUB_WORKSPACE/probe/$VARIANT-run-$i.log" 2>&1 || echo "run $i exit $?"
-          done
-          for f in "$GITHUB_WORKSPACE"/probe/*.log; do
-            echo "$(basename "$f") launched=$(grep -c '<launched>' "$f") sigtrap=$(grep -c 'signal=SIGTRAP' "$f") guid=$(grep -c 'not bound in the connection' "$f") headlessshell=$(grep -c 'headless_shell' "$f")"
+          PWVER="${VARIANT#*-}"; PWVER="${PWVER%%-*}"
+          TARGET="${VARIANT%%-*}"
+          if [ "$PWVER" = "1.63.0" ]; then
+            mkdir -p /tmp/pw163 && (cd /tmp/pw163 && npm init -y >/dev/null && npm i playwright-core@1.63.0 >/dev/null && node node_modules/playwright-core/cli.js install --with-deps chromium)
+            export PW_MODULE=/tmp/pw163/node_modules/playwright-core/index.mjs
+          else
+            export PW_MODULE="$PWD/node_modules/playwright-core/index.mjs"
+            [ -f "$PW_MODULE" ] || export PW_MODULE="$(cd "$GITHUB_WORKSPACE/composition/application-development-toolkit" && node -e 'console.log(require.resolve("playwright-core/index.mjs"))')"
+          fi
+          echo "module: $PW_MODULE"
+          if [ "$TARGET" = "app" ]; then
+            HOST=127.0.0.1 PORT=3000 bun src/server/index.ts > "$GITHUB_WORKSPACE/probe/server.log" 2>&1 &
+            for _ in $(seq 1 50); do (echo > /dev/tcp/127.0.0.1/3000) 2>/dev/null && break; sleep 0.2; done
+            export PROBE_URL=https://127.0.0.1:3000/
+          else
+            export PROBE_URL=about:blank
+          fi
+          if [[ "$VARIANT" == *serial ]]; then export PROBE_LANES=1; else export PROBE_LANES=2; fi
+          cat > "$GITHUB_WORKSPACE/probe-launch.mjs" <<'JS'
+          const { chromium } = await import(process.env.PW_MODULE);
+          const url = process.env.PROBE_URL;
+          const lanes = Number(process.env.PROBE_LANES);
+          const perLane = 30;
+          let launches = 0, crashes = 0, gotoErrors = 0;
+          async function lane() {
+            for (let i = 0; i < perLane; i++) {
+              const browser = await chromium.launch({ channel: "chromium" });
+              launches++;
+              let closedByUs = false;
+              browser.on("disconnected", () => { if (!closedByUs) crashes++; });
+              try {
+                const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
+                const page = await ctx.newPage();
+                await page.goto(url);
+                await new Promise((r) => setTimeout(r, 2500));
+              } catch (e) {
+                gotoErrors++;
+              }
+              closedByUs = true;
+              await browser.close().catch(() => {});
+            }
+          }
+          await Promise.all(Array.from({ length: lanes }, lane));
+          console.log(JSON.stringify({ variant: process.env.VARIANT, version: chromium.name(), launches, unexpectedDisconnects: crashes, gotoErrors }));
+          JS
+          sed -i 's/^          //' "$GITHUB_WORKSPACE/probe-launch.mjs"
+          for r in 1 2 3; do
+            DEBUG=pw:browser node "$GITHUB_WORKSPACE/probe-launch.mjs" > "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log" 2>&1 || echo "round $r exit $?"
+            echo "round $r: $(grep -c 'signal=SIGTRAP' "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log") SIGTRAP; $(tail -1 "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log" | cut -c1-200)"
           done
       - name: Upload raw logs
         if: always()
