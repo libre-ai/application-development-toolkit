@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [loop-app-1.61.1, suite-1.61.1, suite-1.63.0, suite-1.62.1]
+        variant: [cross-runner1.62.1-chrome1228, cross-runner1.61.1-chrome1234]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -69,7 +69,7 @@ jobs:
         working-directory: composition/application-development-toolkit
         run: bun run build
       - name: Minimal launch loop (no test runner)
-        if: startsWith(matrix.variant, 'loop')
+        if: startsWith(matrix.variant, 'loop-never')
         working-directory: composition/application-development-toolkit/packages/starter/starter
         shell: bash
         env:
@@ -128,7 +128,7 @@ jobs:
             echo "round $r: $(grep -c 'signal=SIGTRAP' "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log") SIGTRAP; $(tail -1 "$GITHUB_WORKSPACE/probe/$VARIANT-round-$r.log" | cut -c1-200)"
           done
       - name: Starter suite with the selected Playwright version
-        if: startsWith(matrix.variant, 'suite')
+        if: startsWith(matrix.variant, 'suite-never')
         working-directory: composition/application-development-toolkit/packages/starter/starter
         shell: bash
         env:
@@ -156,6 +156,45 @@ jobs:
           done
           for f in "$GITHUB_WORKSPACE"/probe/*.log; do
             echo "$(basename "$f") launched=$(grep -c '<launched>' "$f") sigtrap=$(grep -c 'signal=SIGTRAP' "$f") guid=$(grep -c 'not bound in the connection' "$f")"
+          done
+      - name: Cross runner and browser versions
+        if: startsWith(matrix.variant, 'cross')
+        working-directory: composition/application-development-toolkit/packages/starter/starter
+        shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
+          DEBUG: pw:browser
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/probe"
+          export STARTER_DIR="$PWD"
+          mkdir -p /tmp/pwcli && (cd /tmp/pwcli && npm init -y >/dev/null && npm i @playwright/test@1.62.1 >/dev/null && node node_modules/@playwright/test/cli.js install --with-deps chromium)
+          ls ~/.cache/ms-playwright
+          find ~/.cache/ms-playwright -maxdepth 3 -name chrome -type f
+          EXE1228="$(find ~/.cache/ms-playwright/chromium-1228 -maxdepth 3 -name chrome -type f | head -1)"
+          EXE1234="$(find ~/.cache/ms-playwright/chromium-1234 -maxdepth 3 -name chrome -type f | head -1)"
+          echo "1228=$EXE1228 1234=$EXE1234"
+          if [ "$VARIANT" = "cross-runner1.62.1-chrome1228" ]; then
+            export PW_EXE="$EXE1228"
+            RUNDIR=/tmp/pwsuite
+            mkdir -p "$RUNDIR" && cp -R e2e "$RUNDIR/e2e" && cp playwright.config.ts "$RUNDIR/playwright.config.ts"
+            sed -i 's|command: "bun run build && bun src/server/index.ts",|command: "bun src/server/index.ts", cwd: process.env.STARTER_DIR,|' "$RUNDIR/playwright.config.ts"
+            sed -i 's|^  use: {|  use: {\n    launchOptions: { executablePath: process.env.PW_EXE },|' "$RUNDIR/playwright.config.ts"
+            cp -R /tmp/pwcli/node_modules "$RUNDIR/node_modules"
+            RUN="node node_modules/@playwright/test/cli.js test"
+          else
+            export PW_EXE="$EXE1234"
+            RUNDIR="$PWD"
+            sed -i 's|^  use: {|  use: {\n    launchOptions: { executablePath: process.env.PW_EXE },|' playwright.config.ts
+            RUN="bun x --no-install playwright test"
+          fi
+          grep -n -A2 "^  use: {" "$RUNDIR/playwright.config.ts"
+          cd "$RUNDIR"
+          for i in 1 2 3 4 5 6; do
+            $RUN --reporter=line --project=chromium --project=chromium-csrf --project=chromium-pwa --project=chromium-no-js \
+              > "$GITHUB_WORKSPACE/probe/$VARIANT-run-$i.log" 2>&1 || echo "run $i exit $?"
+          done
+          for f in "$GITHUB_WORKSPACE"/probe/*.log; do
+            echo "$(basename "$f") launched=$(grep -c '<launched>' "$f") sigtrap=$(grep -c 'signal=SIGTRAP' "$f") guid=$(grep -c 'not bound in the connection' "$f") exe=$(grep -ohE 'ms-playwright/chromium-[0-9]+' "$f" | sort -u | tr '\n' ' ')"
           done
       - name: Upload raw logs
         if: always()
