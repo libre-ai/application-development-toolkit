@@ -16,7 +16,7 @@ Des composants d'interface, des adaptateurs web et des outils de test partagés 
 
 ## Essayer localement
 
-Suivez le [guide commun de composition locale](https://github.com/libre-ai/project-governance/blob/main/docs/LOCAL-COMPOSITION.md) avec la cible `application-development-toolkit` et le SHA à vérifier. Il prépare tous les voisins et construit UI avant les installations des consommateurs. Depuis la racine du toolkit ainsi préparé :
+Suivez le [guide commun de composition locale](https://github.com/libre-ai/project-governance/blob/HEAD/docs/LOCAL-COMPOSITION.md) avec la cible `application-development-toolkit` et le SHA à vérifier. Il prépare tous les voisins et construit UI avant les installations des consommateurs. Depuis la racine du toolkit ainsi préparé :
 
 ```sh
 bun run --cwd packages/starter/bun-app build
