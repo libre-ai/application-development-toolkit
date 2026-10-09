@@ -6,17 +6,17 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testMatch: /reference\.e2e\.ts/,
+      testMatch: /(reference|hydration-marker)\.e2e\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
-      testMatch: /reference\.e2e\.ts/,
+      testMatch: /(reference|hydration-marker)\.e2e\.ts/,
       use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit",
-      testMatch: /reference\.e2e\.ts/,
+      testMatch: /(reference|hydration-marker)\.e2e\.ts/,
       use: { ...devices["Desktop Safari"] },
     },
     {
