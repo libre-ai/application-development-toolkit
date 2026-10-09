@@ -20,7 +20,7 @@
     "typecheck": "bun run check:bun:runtime && tsc --noEmit -p tsconfig.json",
     "pretest": "bun run check:bun",
     "test": "bun test",
-    "check": "bun run check:bun && bun run check:toolchain && bun run check:secret-scan && bun run check:personal-data && bun run lint && bun run typecheck && bun test"
+    "check": "bun run check:bun && bun run check:toolchain && bun run check:secret-scan && bun run check:personal-data && bun run lint && bun run typecheck && bun run test"
   },
   "description": "Bun-native web foundation for Libre AI applications: Bun.serve SSR/hydration/static, hardened responses (layer 4).",
   "homepage": "https://libre-ai.fr",
