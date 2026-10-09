@@ -24,6 +24,6 @@
     "@libre-ai/auth-web": "file:../ai-work-supervision/packages/auth-web"
   },
   "patchedDependencies": {
-    "playwright-core@1.61.1": "patches/playwright-core@1.61.1.patch"
+    "playwright-core@1.62.1": "patches/playwright-core@1.62.1.patch"
   }
 }
