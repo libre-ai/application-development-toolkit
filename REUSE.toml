@@ -1,11 +1,11 @@
 version = 1
 
 [[annotations]]
-path = [".gitignore", "package.json", "bun.lock"]
+path = [".gitignore", "package.json", "bun.lock", ".github/dependabot.yml", "project.v1.yaml"]
 SPDX-FileCopyrightText = "2026 Libre AI contributors"
 SPDX-License-Identifier = "EUPL-1.2"
 
 [[annotations]]
-path = ["README*.md", "docs/**"]
+path = ["README*.md", "AGENTS.md", "CLAUDE.md", "docs/**"]
 SPDX-FileCopyrightText = "2026 Libre AI contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
