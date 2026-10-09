@@ -12,7 +12,13 @@ export default defineConfig({
     {
       name: "firefox",
       testMatch: /(reference|hydration-marker)\.e2e\.ts/,
-      use: { ...devices["Desktop Firefox"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        // TODO(playwright-1.64): remove once @playwright/test >= 1.64.0 (microsoft/playwright#42731) — Juggler loses a message on COOP-triggered context replacement.
+        launchOptions: {
+          firefoxUserPrefs: { "browser.tabs.remote.useCrossOriginOpenerPolicy": false },
+        },
+      },
     },
     {
       name: "webkit",
