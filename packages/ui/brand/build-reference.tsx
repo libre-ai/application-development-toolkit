@@ -17,14 +17,14 @@ const proofs = [
   {
     claim: "Souveraineté",
     mechanism: "Les choix d'hébergement, dépendances et mécanismes de réversibilité sont publiés.",
-    sourceHref: "https://github.com/libre-ai/governance",
+    sourceHref: "https://github.com/libre-ai/project-governance",
     verifiedOn: "2026-09-09",
     limitation: "Aucun déploiement non prouvé n'est présenté comme actif.",
   },
   {
     claim: "Explicabilité",
     mechanism: "Décisions, états et limites sont reliés à des sources versionnées.",
-    sourceHref: "https://github.com/libre-ai/governance",
+    sourceHref: "https://github.com/libre-ai/project-governance",
     verifiedOn: "2026-09-09",
     limitation: "La traçabilité ne rend pas toute sortie de modèle causalement explicable.",
   },

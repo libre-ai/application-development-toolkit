@@ -2,7 +2,7 @@
 version = 1
 SPDX-PackageName = "starter"
 SPDX-PackageSupplier = "Libre AI <https://github.com/libre-ai>"
-SPDX-PackageDownloadLocation = "https://github.com/libre-ai/starter"
+SPDX-PackageDownloadLocation = "https://github.com/libre-ai/application-development-toolkit"
 
 [[annotations]]
 path = ["**"]

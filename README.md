@@ -16,7 +16,7 @@ Shared interface components, web adapters and testing tools so applications can 
 
 ## Try locally
 
-Follow the [shared local composition guide](https://github.com/libre-ai/project-governance/blob/main/docs/LOCAL-COMPOSITION.md) with target `application-development-toolkit` and the commit to verify. It prepares all siblings and builds UI before consumer installation. From the prepared toolkit root:
+Follow the [shared local composition guide](https://github.com/libre-ai/project-governance/blob/HEAD/docs/LOCAL-COMPOSITION.md) with target `application-development-toolkit` and the commit to verify. It prepares all siblings and builds UI before consumer installation. From the prepared toolkit root:
 
 ```sh
 bun run --cwd packages/starter/bun-app build
