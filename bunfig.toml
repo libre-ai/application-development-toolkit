@@ -4,3 +4,7 @@
 [install]
 # Shared React packages must resolve one runtime across application workspaces.
 linker = "hoisted"
+# Fleet release-age guard (project-governance check-release-age): a version
+# younger than three days is not resolved.
+minimumReleaseAge = 259200
+minimumReleaseAgeExcludes = []
