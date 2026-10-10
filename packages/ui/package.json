@@ -71,7 +71,7 @@
     "test": "bun test",
     "test:e2e": "bun run check:bun:runtime && env -u NO_COLOR -u FORCE_COLOR playwright test",
     "check": "bun run check:bun && bun run check:toolchain && bun run check:secret-scan && bun run check:personal-data && bun run check:licensing && bun run check:colors && bun run check:brand-assets && bun run check:package-contents && bun run check:brand-reference && bun run lint && bun run typecheck && bun run test",
-    "prepublishOnly": "bun run check && bun run check:brand-publication",
+    "prepublishOnly": "bun run check:bun:runtime && bun run check && bun run check:brand-publication",
     "build": "bun run check:bun && bun run check:bun:runtime && bun build src/index.ts src/tailwind.ts --outdir dist --target browser --format esm --production --external react --external react-dom --external react-aria-components --external 'react-aria-components/*' --external tailwindcss"
   },
   "dependencies": {
