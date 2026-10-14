@@ -9,7 +9,7 @@
     "bun": ">=1.4.0"
   },
   "scripts": {
-    "check:bun": "bun scripts/check-bun-version.ts",
+    "check:bun": "bun ../node_modules/@libre-ai/governance/tools/quality/check-bun-minimum.ts",
     "prebuild": "bun run check:bun",
     "build": "bun scripts/build.ts",
     "prestart": "bun run check:bun",
