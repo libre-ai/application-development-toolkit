@@ -16,7 +16,7 @@ const coreEntry = createRequire(playwrightEntry).resolve("playwright-core");
 const packageRoot = path.dirname(coreEntry);
 assert.equal(
 	JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"))).version,
-	"1.62.1",
+	"1.64.0",
 );
 const bundle = path.join(packageRoot, "lib/coreBundle.js");
 const hash = () =>

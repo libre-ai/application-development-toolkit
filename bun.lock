@@ -25,7 +25,7 @@
       },
       "devDependencies": {
         "@libre-ai/contracts": "file:../../../../schemas-and-contracts/packages/sdk-ts",
-        "@playwright/test": "1.62.1",
+        "@playwright/test": "1.64.0",
       },
     },
     "packages/starter/starter": {
@@ -40,7 +40,7 @@
         "react-dom": "19.2.7",
       },
       "devDependencies": {
-        "@playwright/test": "1.62.1",
+        "@playwright/test": "1.64.0",
       },
     },
     "packages/testing": {
@@ -65,7 +65,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.3",
         "@libre-ai/governance": "file:../../../project-governance",
-        "@playwright/test": "1.62.1",
+        "@playwright/test": "1.64.0",
         "@types/bun": "1.3.14",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
@@ -105,7 +105,7 @@
     },
   },
   "patchedDependencies": {
-    "playwright-core@1.62.1": "patches/playwright-core@1.62.1.patch",
+    "playwright-core@1.64.0": "patches/playwright-core@1.64.0.patch",
   },
   "overrides": {
     "@libre-ai/auth-web": "file:../ai-work-supervision/packages/auth-web",
@@ -151,7 +151,7 @@
 
     "@libre-ai/web-platform": ["@libre-ai/web-platform@workspace:packages/web-platform"],
 
-    "@playwright/test": ["@playwright/test@1.62.1", "", { "dependencies": { "playwright": "1.62.1" }, "bin": { "playwright": "cli.js" } }, "sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ=="],
+    "@playwright/test": ["@playwright/test@1.64.0", "", { "dependencies": { "playwright": "1.64.0" }, "bin": { "playwright": "cli.js" } }, "sha512-oTN9FNYuN6bqQMwiho6jJKLCG2/QOYCixGXuCjRmzOq23eODeukuY2XiAVoVpAECbuezMt1MHQjAiQxK8F+Y+g=="],
 
     "@react-types/shared": ["@react-types/shared@3.36.1", "", { "peerDependencies": { "react": "^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1" } }, "sha512-AzsuD9OfxTOZMMvTRhlN3oHBwOmFN7tDh27LzqmHt4+uOgPhJT7ZM7/kVs/8/o0WxayMUIk3hBmCFRHv1FUoag=="],
 
@@ -229,9 +229,9 @@
 
     "json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 
-    "playwright": ["playwright@1.62.1", "", { "dependencies": { "playwright-core": "1.62.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg=="],
+    "playwright": ["playwright@1.64.0", "", { "dependencies": { "playwright-core": "1.64.0" }, "bin": { "playwright": "cli.js" } }, "sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg=="],
 
-    "playwright-core": ["playwright-core@1.62.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw=="],
+    "playwright-core": ["playwright-core@1.64.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg=="],
 
     "react": ["react@19.2.7", "", {}, "sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ=="],
 
@@ -261,7 +261,7 @@
 
     "@libre-ai/starter-gates/@libre-ai/governance": ["@libre-ai/governance@file:../project-governance", { "dependencies": { "ajv": "8.20.0", "ajv-formats": "3.0.1", "entities": "8.0.0" }, "devDependencies": { "@biomejs/biome": "2.5.3", "@types/bun": "1.3.14", "typescript": "7.0.2" } }],
 
-    "@libre-ai/starter-template/@libre-ai/auth-web": ["@libre-ai/auth-web@file:../ai-work-supervision/packages/auth-web", { "devDependencies": { "@biomejs/biome": "2.5.3", "@libre-ai/governance": "file:../../../project-governance", "@playwright/test": "1.61.1", "@types/bun": "1.3.14", "@types/react": "19.2.17", "@types/react-dom": "19.2.3", "typescript": "7.0.2" }, "peerDependencies": { "@libre-ai/contracts": "=0.1.0", "@libre-ai/web-platform": "=0.1.0" } }],
+    "@libre-ai/starter-template/@libre-ai/auth-web": ["@libre-ai/auth-web@file:../ai-work-supervision/packages/auth-web", { "devDependencies": { "@biomejs/biome": "2.5.3", "@libre-ai/governance": "file:../../../project-governance", "@playwright/test": "1.62.1", "@types/bun": "1.3.14", "@types/react": "19.2.17", "@types/react-dom": "19.2.3", "typescript": "7.0.2" }, "peerDependencies": { "@libre-ai/contracts": "=0.1.0", "@libre-ai/web-platform": "=0.1.0" } }],
 
     "@libre-ai/starter-template/@libre-ai/contracts": ["@libre-ai/contracts@file:../schemas-and-contracts/packages/sdk-ts", { "dependencies": { "ajv": "8.20.0", "ajv-formats": "3.0.1" }, "devDependencies": { "@biomejs/biome": "2.5.3", "@libre-ai/governance": "file:../../../project-governance", "@types/bun": "1.3.14", "typescript": "7.0.2" } }],
 
@@ -277,12 +277,12 @@
 
     "@libre-ai/starter-template/@libre-ai/auth-web/@libre-ai/governance": ["@libre-ai/governance@file:../project-governance", {}],
 
-    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test": ["@playwright/test@1.61.1", "", { "dependencies": { "playwright": "1.61.1" }, "bin": { "playwright": "cli.js" } }, "sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig=="],
+    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test": ["@playwright/test@1.62.1", "", { "dependencies": { "playwright": "1.62.1" }, "bin": { "playwright": "cli.js" } }, "sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ=="],
 
     "@libre-ai/starter-template/@libre-ai/contracts/@libre-ai/governance": ["@libre-ai/governance@file:../project-governance", {}],
 
-    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test/playwright": ["playwright@1.61.1", "", { "dependencies": { "playwright-core": "1.61.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ=="],
+    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test/playwright": ["playwright@1.62.1", "", { "dependencies": { "playwright-core": "1.62.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg=="],
 
-    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test/playwright/playwright-core": ["playwright-core@1.61.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg=="],
+    "@libre-ai/starter-template/@libre-ai/auth-web/@playwright/test/playwright/playwright-core": ["playwright-core@1.62.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw=="],
   }
 }
