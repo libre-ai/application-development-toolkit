@@ -6,8 +6,14 @@
  * documents that set no theme. Both must carry the same declarations in the same order, and no
  * dark block may redeclare a raw `--lai-palette-*` color: themes remap roles, never primitives.
  *
- * Selectors are matched exactly. A sheet where an expected block cannot be found is an error,
- * never an empty result: an extractor that finds nothing must not read as parity.
+ * Parity blocks are matched by exact selector. A sheet where an expected block cannot be found is
+ * an error, never an empty result: an extractor that finds nothing must not read as parity. A rule
+ * nested inside a dark block (`& { … }`, a nested at-rule) is an error too: its declarations would
+ * otherwise belong to no block and escape both controls.
+ *
+ * The raw palette control is wider than the exact selectors: it also reads every rule under a
+ * `prefers-color-scheme: dark` media query and every rule whose selector, or an ancestor's, names
+ * a dark `data-lai-theme` value, in any layer.
  */
 
 export const EXPLICIT_DARK_SELECTOR = ':root[data-lai-theme="dark"]';
@@ -16,6 +22,11 @@ export const AUTOMATIC_DARK_SELECTOR =
   ':root:not([data-lai-theme="light"]):not([data-lai-theme="dark"]):not([data-lai-theme="dark-high-contrast"])';
 export const DARK_MEDIA_QUERY = "@media (prefers-color-scheme: dark)";
 export const RAW_PALETTE_PREFIX = "--lai-palette-";
+
+// Wider dark contexts, for the raw palette control only: any spelling of the dark media feature,
+// and any attribute selector whose value starts with "dark" (dark, dark-high-contrast).
+const DARK_MEDIA_PATTERN = /^@media\b.*prefers-color-scheme\s*:\s*dark\b/;
+const DARK_THEME_ATTRIBUTE_PATTERN = /data-lai-theme\s*[~|^$*]?=\s*["']?dark/;
 
 export const DARK_BLOCK_KINDS = ["explicit", "media", "high-contrast"] as const;
 export type DarkBlockKind = (typeof DARK_BLOCK_KINDS)[number];
@@ -41,7 +52,10 @@ export interface DarkBlock {
 
 interface ParsedRule {
   prelude: string;
+  /** Preludes of the enclosing rules, outermost first. */
   ancestors: readonly string[];
+  /** Enclosing rules, outermost first, in step with `ancestors`. */
+  parents: readonly ParsedRule[];
   declarations: DarkDeclaration[];
 }
 
@@ -81,6 +95,7 @@ function parseRules(css: string): readonly ParsedRule[] {
       const rule: ParsedRule = {
         prelude: normalizeWhitespace(text.slice(start, index)),
         ancestors: open.map((ancestor) => ancestor.prelude),
+        parents: [...open],
         declarations: [],
       };
       rules.push(rule);
@@ -116,28 +131,38 @@ function layerOf(rule: ParsedRule): string {
   return "";
 }
 
+function formatOf(rule: ParsedRule): DarkBlockFormat {
+  return rule.ancestors.some((ancestor) => ancestor.startsWith("@supports")) ? "oklch" : "fallback";
+}
+
 function blockLabel(block: Pick<DarkBlock, "kind" | "layer" | "format">): string {
   return `${block.layer}/${block.format}/${block.kind}`;
 }
 
-/**
- * Extracts every dark block of a generated sheet, in source order.
- *
- * Throws `color.dark_parity_block_missing:<layer>/<format>/<kind>` when one of the themed layers
- * lacks a dark block, and `color.dark_parity_block_duplicate:<…>` when a block appears twice.
- */
-export function darkBlocks(css: string): readonly DarkBlock[] {
+function isWiderDarkContext(prelude: string): boolean {
+  return DARK_MEDIA_PATTERN.test(prelude) || DARK_THEME_ATTRIBUTE_PATTERN.test(prelude);
+}
+
+function extractDarkBlocks(rules: readonly ParsedRule[]): readonly DarkBlock[] {
   const blocks: DarkBlock[] = [];
   const seen = new Set<string>();
-  for (const rule of parseRules(css)) {
+  for (const rule of rules) {
+    for (const parent of rule.parents) {
+      const parentKind = darkKind(parent);
+      if (parentKind === undefined) continue;
+      const label = blockLabel({
+        kind: parentKind,
+        layer: layerOf(parent),
+        format: formatOf(parent),
+      });
+      throw new Error(`color.dark_parity_nested_rule:${label}`);
+    }
     const kind = darkKind(rule);
     if (kind === undefined) continue;
     const block: DarkBlock = {
       kind,
       layer: layerOf(rule),
-      format: rule.ancestors.some((ancestor) => ancestor.startsWith("@supports"))
-        ? "oklch"
-        : "fallback",
+      format: formatOf(rule),
       declarations: rule.declarations,
     };
     const label = blockLabel(block);
@@ -155,6 +180,17 @@ export function darkBlocks(css: string): readonly DarkBlock[] {
     }
   }
   return blocks;
+}
+
+/**
+ * Extracts every dark block of a generated sheet, in source order.
+ *
+ * Throws `color.dark_parity_block_missing:<layer>/<format>/<kind>` when one of the themed layers
+ * lacks a dark block, `color.dark_parity_block_duplicate:<…>` when a block appears twice, and
+ * `color.dark_parity_nested_rule:<…>` when a rule is nested inside a dark block.
+ */
+export function darkBlocks(css: string): readonly DarkBlock[] {
+  return extractDarkBlocks(parseRules(css));
 }
 
 function comparePair(
@@ -225,13 +261,19 @@ export function compareDarkBlocks(css: string): readonly string[] {
 }
 
 /**
- * Names of the raw palette colors redeclared in any dark block (explicit, high contrast or
- * automatic), in source order. Expected to be empty: a theme never overrides a primitive.
+ * Names of the raw palette colors redeclared in a dark context, in source order: any dark block
+ * (explicit, high contrast or automatic), any rule under a dark media query, any rule whose
+ * selector or an ancestor's names a dark theme. Expected to be empty: a theme never overrides a
+ * primitive. Throws the errors of `darkBlocks` first.
  */
 export function rawPaletteOverrides(css: string): readonly string[] {
-  return darkBlocks(css).flatMap((block) =>
-    block.declarations
-      .map((declaration) => declaration.name)
-      .filter((name) => name.startsWith(RAW_PALETTE_PREFIX)),
-  );
+  const rules = parseRules(css);
+  extractDarkBlocks(rules);
+  return rules
+    .filter((rule) => [...rule.ancestors, rule.prelude].some(isWiderDarkContext))
+    .flatMap((rule) =>
+      rule.declarations
+        .map((declaration) => declaration.name)
+        .filter((name) => name.startsWith(RAW_PALETTE_PREFIX)),
+    );
 }

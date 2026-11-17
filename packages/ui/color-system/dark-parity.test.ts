@@ -167,6 +167,24 @@ describe("dark block parity", () => {
     expect(() => darkBlocks("")).toThrow("color.dark_parity_block_missing");
     expect(() => darkBlocks(realSheet.slice(0, -3))).toThrow("color.dark_parity_unbalanced_css");
   });
+
+  test.each([
+    ["a nesting rule", "  & { --lai-palette-primary-9: #010203; }"],
+    ["a nested at-rule", "  @supports (color: red) { --lai-color-extra: #010203; }"],
+  ])("refuses %s inside a dark block instead of skipping it", (_label, nested) => {
+    const blocks = [
+      [EXPLICIT_OPENER, "explicit"],
+      [AUTOMATIC_OPENER, "media"],
+      [HIGH_CONTRAST_OPENER, "high-contrast"],
+    ] as const;
+    for (const [opener, kind] of blocks) {
+      const mutated = addDeclaration(opener, 0, nested);
+      const error = `color.dark_parity_nested_rule:lai-color-semantics/fallback/${kind}`;
+      expect(() => darkBlocks(mutated)).toThrow(error);
+      expect(() => compareDarkBlocks(mutated)).toThrow(error);
+      expect(() => rawPaletteOverrides(mutated)).toThrow(error);
+    }
+  });
 });
 
 describe("raw palette immutability", () => {
@@ -186,6 +204,28 @@ describe("raw palette immutability", () => {
         "--lai-palette-primary-9",
       ]);
     }
+  });
+
+  test.each([
+    [
+      "a dark media query of the primitives layer",
+      "  @media (prefers-color-scheme: dark) {\n    :root { --lai-palette-primary-9: #010203; }\n  }",
+    ],
+    [
+      "a dark media query written without space",
+      "  @media (prefers-color-scheme:dark) {\n    :root { --lai-palette-primary-9: #010203; }\n  }",
+    ],
+    [
+      "a selector list naming the dark theme",
+      '  :root[data-lai-theme="dark"], .lai-card { --lai-palette-primary-9: #010203; }',
+    ],
+    [
+      "a descendant of the high contrast theme",
+      "  :root[data-lai-theme='dark-high-contrast'] .lai-card { --lai-palette-primary-9: #010203; }",
+    ],
+  ])("lists a raw palette color redeclared under %s", (_label, rule) => {
+    const mutated = addDeclaration("@layer lai-color-primitives {\n", 0, rule);
+    expect(rawPaletteOverrides(mutated)).toEqual(["--lai-palette-primary-9"]);
   });
 });
 

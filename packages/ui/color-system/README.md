@@ -21,8 +21,10 @@ exploration directory.
   schema, then verifies audits, Tailwind 4.3 compilation and preview constraints.
 - `dark-parity.ts` reads a generated sheet and reports any gap between the explicit dark block
   and the automatic `prefers-color-scheme` block (names, values and order, per layer and color
-  format), and any raw `--lai-palette-*` color redeclared in a dark block. A sheet whose dark
-  blocks cannot be found is an error, never an empty result.
+  format), and any raw `--lai-palette-*` color redeclared in a dark context (a dark block, a
+  `prefers-color-scheme: dark` media query, or a selector naming a dark theme). A sheet whose
+  dark blocks cannot be found, or with a rule nested inside a dark block, is an error, never an
+  empty result.
 - `dark-parity.test.ts` applies those controls to every generated sheet and to the adopted one,
   proves them against mutated copies of the real output, and verifies that the surface roles
   resolve to a different color in dark than in light.
