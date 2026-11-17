@@ -4,7 +4,8 @@ export {
   renderSsrDocument,
   renderStaticDocument,
 } from "./document";
-export { problem, secureResponse } from "./response";
+export { liveRoute, readyRoute } from "./probes";
+export { PROBLEM_STATUSES, type ProblemStatus, problem, secureResponse } from "./response";
 export {
   createRequestHandler,
   parseServerAddress,
@@ -12,3 +13,4 @@ export {
   type RouteHandler,
   type StaticAsset,
 } from "./server";
+export { revealHiddenCharacters } from "./visible-text";

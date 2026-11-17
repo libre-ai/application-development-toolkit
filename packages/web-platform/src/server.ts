@@ -1,6 +1,14 @@
 import { problem, secureResponse } from "./response";
 
-export type RouteHandler = (request: Request, url: URL) => Response | Promise<Response>;
+/**
+ * `requestId` is the identifier the router validated for this request. A route passes it to
+ * `problem()` so that the refusal body and the `X-Request-Id` header agree.
+ */
+export type RouteHandler = (
+  request: Request,
+  url: URL,
+  requestId: string,
+) => Response | Promise<Response>;
 
 export interface StaticAsset {
   body: BodyInit;
@@ -25,7 +33,11 @@ export function createRequestHandler({
       requestId = createRequestId(request);
       if (!/^req_[a-z0-9]{16,64}$/.test(requestId)) throw new Error("invalid request id");
     } catch {
-      return headless(request, problem(500, "web.request_id_unavailable", "req_0000000000000000"));
+      return finish(
+        request,
+        problem(500, "web.request_id_unavailable", FALLBACK_REQUEST_ID),
+        FALLBACK_REQUEST_ID,
+      );
     }
 
     const url = new URL(request.url);
@@ -33,12 +45,12 @@ export function createRequestHandler({
     const asset = assets[url.pathname];
 
     if (route === undefined && asset === undefined) {
-      return headless(request, problem(404, "web.route_not_found", requestId));
+      return finish(request, problem(404, "web.route_not_found", requestId), requestId);
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       const response = problem(405, "web.method_not_allowed", requestId);
       response.headers.set("Allow", "GET, HEAD");
-      return response;
+      return finish(request, response, requestId);
     }
 
     try {
@@ -51,15 +63,26 @@ export function createRequestHandler({
           asset.cacheControl ?? "public, max-age=300",
         );
       } else if (route !== undefined) {
-        response = secureResponse(await route(request, url));
+        response = secureResponse(await route(request, url, requestId));
       } else {
-        return problem(404, "web.route_not_found", requestId);
+        return finish(request, problem(404, "web.route_not_found", requestId), requestId);
       }
-      return headless(request, response);
+      return finish(request, response, requestId);
     } catch {
-      return headless(request, problem(500, "web.internal_error", requestId));
+      return finish(request, problem(500, "web.internal_error", requestId), requestId);
     }
   };
+}
+
+const FALLBACK_REQUEST_ID = "req_0000000000000000";
+
+/**
+ * Single exit of the router: every response carries the validated identifier. The value never
+ * comes from the client request, and `set` overwrites one a route may have copied from it.
+ */
+function finish(request: Request, response: Response, requestId: string): Response {
+  response.headers.set("X-Request-Id", requestId);
+  return headless(request, response);
 }
 
 function headless(request: Request, response: Response): Response {
