@@ -5,8 +5,15 @@ const SECURITY_HEADERS = {
   "Cross-Origin-Resource-Policy": "same-origin",
   "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
   "Referrer-Policy": "no-referrer",
+  // Unconditional: a browser ignores it over plain HTTP and on an IP address host.
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "X-Content-Type-Options": "nosniff",
 } as const;
+
+/** Closed list of the statuses `problem` can emit. */
+export const PROBLEM_STATUSES = [400, 401, 403, 404, 405, 409, 422, 429, 500, 503] as const;
+
+export type ProblemStatus = (typeof PROBLEM_STATUSES)[number];
 
 export function secureResponse(response: Response, cacheControl = "no-store"): Response {
   const headers = new Headers(response.headers);
@@ -21,8 +28,10 @@ export function secureResponse(response: Response, cacheControl = "no-store"): R
   });
 }
 
-export function problem(status: 400 | 404 | 405 | 500, code: string, requestId: string): Response {
+export function problem(status: ProblemStatus, code: string, requestId: string): Response {
   if (
+    // The type is erased at run time: a cast or an untyped caller must still be refused.
+    !PROBLEM_STATUSES.includes(status) ||
     !/^[a-z][a-z0-9-]*\.[a-z][a-z0-9_.-]*$/.test(code) ||
     !/^req_[a-z0-9]{16,64}$/.test(requestId)
   ) {
