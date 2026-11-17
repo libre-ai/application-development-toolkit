@@ -8,6 +8,25 @@
  */
 export type HeaderDictionary = Record<string, string>;
 
+/**
+ * Thrown when extra headers try to override `origin` or `sec-fetch-site`.
+ * Those two headers are the very markers a cross-site check reads: letting an
+ * extra header rewrite them would turn a same-origin fixture into a
+ * cross-site one (or the reverse) without the test saying so.
+ */
+export class ProtectedHeaderOverrideError extends Error {
+  readonly header: string;
+
+  constructor(header: string) {
+    super(`extra header "${header}" would override a protected origin marker`);
+    this.name = "ProtectedHeaderOverrideError";
+    this.header = header;
+  }
+}
+
+// Lower-case names: header names are compared case-insensitively.
+const PROTECTED_HEADERS: ReadonlySet<string> = new Set(["origin", "sec-fetch-site"]);
+
 // Reserved TLD (RFC 2606): never resolves, never a real third party.
 const THIRD_PARTY_ORIGIN = "https://third-party.example";
 
@@ -34,15 +53,24 @@ function formPost(
   defaults: HeaderDictionary,
   extra: HeaderDictionary,
 ): Request {
-  // Headers is case-insensitive: an extra header overrides a default of the same name.
+  // Headers is case-insensitive: an extra header overrides a default of the same
+  // name, except the origin markers, which are refused whatever their case.
   const headers = new Headers(defaults);
   for (const [name, value] of Object.entries(extra)) {
+    if (PROTECTED_HEADERS.has(name.toLowerCase())) {
+      throw new ProtectedHeaderOverrideError(name);
+    }
     headers.set(name, value);
   }
   return new Request(url, { method: "POST", headers, body });
 }
 
-/** Form POST as a browser sends it from the page's own origin. */
+/**
+ * Form POST as a browser sends it from the page's own origin: `Origin` is the
+ * target URL's origin (browsers send it on every POST) and `Sec-Fetch-Site` is
+ * `same-origin`. Throws ProtectedHeaderOverrideError if `extraHeaders` names
+ * either marker.
+ */
 export function sameOriginPost(
   url: string,
   body: string,
@@ -53,6 +81,7 @@ export function sameOriginPost(
     body,
     {
       "content-type": "application/x-www-form-urlencoded",
+      origin: new URL(url).origin,
       "sec-fetch-site": "same-origin",
       "x-forwarded-for": uniqueIp(),
     },
@@ -60,7 +89,11 @@ export function sameOriginPost(
   );
 }
 
-/** Form POST from a third-party origin, to check that a cross-site refusal triggers. */
+/**
+ * Form POST from a third-party origin, to check that a cross-site refusal
+ * triggers. Throws ProtectedHeaderOverrideError if `extraHeaders` names
+ * `origin` or `sec-fetch-site`.
+ */
 export function crossOriginPost(
   url: string,
   body: string,

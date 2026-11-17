@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { crossOriginPost, formEncode, sameOriginPost, uniqueIp } from "./index";
+import {
+  crossOriginPost,
+  formEncode,
+  type HeaderDictionary,
+  ProtectedHeaderOverrideError,
+  sameOriginPost,
+  uniqueIp,
+} from "./index";
 
 const TARGET = "https://app.test/submit";
 
@@ -40,6 +47,13 @@ describe("sameOriginPost", () => {
     expect(await req.text()).toBe(body);
   });
 
+  test("carries the target's own Origin, as every browser does on a POST", () => {
+    expect(sameOriginPost(TARGET, "a=1").headers.get("origin")).toBe("https://app.test");
+    expect(sameOriginPost("http://localhost:3000/x?y=1", "a=1").headers.get("origin")).toBe(
+      "http://localhost:3000",
+    );
+  });
+
   test("an extra header does not erase the same-origin marker", () => {
     const req = sameOriginPost(TARGET, "a=1", { authorization: "Basic dGVzdDp0ZXN0" });
     expect(req.headers.get("sec-fetch-site")).toBe("same-origin");
@@ -77,6 +91,26 @@ describe("crossOriginPost", () => {
   test("an extra header cannot restore a same-origin marker by accident of defaults", async () => {
     const req = crossOriginPost(TARGET, "a=1", { "x-test": "1" });
     expect(req.headers.get("x-test")).toBe("1");
+    expect(req.headers.get("sec-fetch-site")).toBe("cross-site");
+    expect(req.headers.get("origin")).toBe("https://third-party.example");
     expect(await req.text()).toBe("a=1");
   });
+});
+
+describe("origin markers cannot be overridden by extra headers", () => {
+  const builders = { sameOriginPost, crossOriginPost } as const;
+  const overrides: ReadonlyArray<HeaderDictionary> = [
+    { "sec-fetch-site": "same-origin" },
+    { "Sec-Fetch-Site": "cross-site" },
+    { origin: "https://evil.example" },
+    { ORIGIN: "https://app.test" },
+  ];
+
+  for (const [name, build] of Object.entries(builders)) {
+    for (const extra of overrides) {
+      test(`${name} refuses ${JSON.stringify(extra)}`, () => {
+        expect(() => build(TARGET, "a=1", extra)).toThrow(ProtectedHeaderOverrideError);
+      });
+    }
+  }
 });
