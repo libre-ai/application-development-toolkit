@@ -56,6 +56,6 @@
   },
   "packageManager": "bun@1.4.0-canary.1",
   "overrides": {
-    "fast-uri": "4.1.4"
+    "fast-uri": "4.2.3"
   }
 }
